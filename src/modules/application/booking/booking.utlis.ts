@@ -1,0 +1,166 @@
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { Decimal } from '@prisma/client/runtime/library';
+import { TanvirStorage } from 'src/common/lib/Disk/TanvirStorage';
+import { StringHelper } from 'src/common/helper/string.helper';
+import appConfig from 'src/config/app.config';
+
+// Define the available booking slots
+export type BookingSlot = 'A' | 'B' | 'C' | 'D';
+
+
+
+// find address with latitude and longitude
+export async function findAddress(
+  prisma: PrismaService,
+  address: string,
+) {
+   const foundLocation = await prisma.location.findFirst({
+    where: {
+      id: address,
+    },
+    select: {
+      location_name: true,
+      latitude: true,
+      longitude: true,
+    },
+  });
+
+  return {
+    findlocation_name: foundLocation?.location_name,
+    findlatitude: foundLocation?.latitude,
+    findlongitude: foundLocation?.longitude,
+  }
+
+
+}
+
+
+// Define the time slots for booking
+export const bookingSlotTimeMap: Record<BookingSlot, { start: string; end: string }> = {
+  A: { start: '08:00am', end: '12:00am' },
+  B: { start: '12:00am', end: '04:00pm' },
+  C: { start: '04:00pm', end: '08:00pm' },
+  D: { start: '08:00pm', end: '12:00pm' },
+};
+
+// Function to format booking date
+// Use UTC date parts to avoid timezone shift when displaying dates.
+export function formatBookingDate(date: Date) {
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+// Function to resolve package details based on package ID
+export async function resolvePackage(prisma: PrismaService, packageId: string) {
+  const residentialPackage = await prisma.residentialCleaningPackage.findUnique({ where: { id: packageId } });
+
+  if (residentialPackage) {
+    return {
+      residential_cleaning_package_id: residentialPackage.id,
+      total_price: residentialPackage.price ? Number(residentialPackage.price) : null,
+    };
+  }
+
+  throw new NotFoundException('Selected package not found');
+}
+
+// Function to validate maid availability and booking constraints
+export async function validateMaid(
+  prisma: PrismaService,
+  maidId: string,
+  userId: string,
+) {
+  const maid = await prisma.user.findUnique({ where: { id: maidId } });
+
+  if (!maid) {
+    throw new NotFoundException('Maid not found');
+  }
+
+  if (maid.type !== 'MAID') {
+    throw new BadRequestException('Selected user is not a maid');
+  }
+
+  if (maidId === userId) {
+    throw new BadRequestException('You cannot book yourself');
+  }
+}
+
+// Function to check if the selected slot is available for booking
+export async function checkSlotAvailability(
+  prisma: PrismaService,
+  maidId: string,
+  bookingDate: Date,
+  slot: string,
+) {
+  const existingBooking = await prisma.booking.findUnique({
+    where: {
+      maid_id_booking_date_slot: {
+        maid_id: maidId,
+        booking_date: bookingDate,
+        slot: slot as any,
+      },
+    },
+  });
+
+  if (existingBooking) {
+    throw new BadRequestException(
+      'This maid is already booked for the selected date and slot',
+    );
+  }
+}
+
+// Function to upload booking images 
+export async function uploadBookingImages(
+  imageFiles: Express.Multer.File[] = [],
+): Promise<string[]> {
+  const uploadedFiles: string[] = [];
+
+  for (const image of imageFiles) {
+    const fileName = `${StringHelper.randomString()}_${image.originalname}`;
+    await TanvirStorage.put(
+      `${appConfig().storageUrl.booking}/${fileName}`,
+      image.buffer,
+    );
+    uploadedFiles.push(fileName);
+  }
+
+  return uploadedFiles;
+}
+
+export async function checkBalance(prisma: PrismaService, userId: string) {
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { balance: true },
+  });
+
+  return user?.balance ?? 0;
+  
+}
+
+
+export async function checkCommission(
+  prisma: PrismaService,
+  balance: number | Decimal,
+) {
+  const commission = await prisma.commission.findFirst({
+    orderBy: { created_at: 'desc' },
+    select: { percentage: true },
+  });
+
+  const percentage = Number(commission?.percentage ?? 0);
+  const balanceValue = Number(balance ?? 0);
+  const amount = Number(((balanceValue * percentage) / 100).toFixed(2));
+
+  return {
+    percentage,
+    amount,
+  };
+}
+
+

@@ -1,0 +1,279 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+
+/* -------------------------------------------
+             USER & AUTHENTICATION
+------------------------------------------- */
+
+
+enum UserType {
+  ADMIN
+  HOMEOWNER
+  MAID
+  CLEANER
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  REJECTED
+}
+
+model User {
+  id              String      @id @default(cuid())
+  firstName       String?     @db.VarChar(255)
+  lastName        String?     @db.VarChar(255)
+  name            String?     @unique @db.VarChar(255)
+  email           String?     @unique @db.VarChar(255)
+  password        String?     @db.VarChar(255)
+  avatar          String?     @db.Text
+  bio             String?     @db.Text
+  phoneNumber     String?     @db.VarChar(50)
+  gender          String?     @db.VarChar(20)
+  type            UserType    @default(CLEANER)
+  status          UserStatus  @default(APPROVED)
+  
+  // Location
+  country         String?     @db.VarChar(100)
+  state           String?     @db.VarChar(100)
+  city            String?     @db.VarChar(100)
+  zipCode         String?     @db.VarChar(20)
+  address         String?     @db.Text
+
+  // Device & Push Notifications
+  fcmToken        String?     @db.Text
+  deviceType      String?     @db.VarChar(50)
+
+  // Billing & Stripe
+  billingId       String?
+  stripeConnectId String?
+  balance         Decimal     @default(0.00) @db.Decimal(10, 2)
+
+  // OAuth & Verification
+  googleId        String?     @unique
+  appleId         String?     @unique
+  emailVerifiedAt DateTime?
+
+  // Timestamps
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  accounts              Account[]            @relation("UserAccounts")
+  ucodes                Ucode[]              @relation("UserUcodes")
+  participants          Participant[]        @relation("UserParticipants")
+  sentMessages          Message[]            @relation("UserSentMessages")
+  sentNotifications     Notification[]       @relation("UserSentNotifications")
+  receivedNotifications Notification[]      @relation("UserReceivedNotifications")
+  paymentMethods        UserPaymentMethod[]  @relation("UserPaymentMethods")
+  transactions          PaymentTransaction[] @relation("UserPaymentTransactions")
+
+  @@index([email])
+  @@index([type, status])
+}
+
+model Account {
+  id                String    @id @default(cuid())
+  userId            String
+  type              String?
+  provider          String
+  providerAccountId String
+  refreshToken      String?   @db.Text
+  accessToken       String?   @db.Text
+  expiresAt         DateTime?
+  tokenType         String?
+  scope             String?
+  idToken           String?   @db.Text
+  sessionState      String?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation("UserAccounts", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Ucode {
+  id         String    @id @default(cuid())
+  userId     String?
+  token      String?   @db.VarChar(255)
+  email      String?   @db.VarChar(255)
+  status     Int?      @default(1) @db.SmallInt
+  expiredAt  DateTime?
+  verifiedAt DateTime?
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user       User?     @relation("UserUcodes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ==========================================
+// CHAT & CONVERSATION
+// ==========================================
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+}
+
+
+model Conversation {
+  id           String        @id @default(cuid())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  participants Participant[] @relation("ConversationParticipants")
+  messages     Message[]     @relation("ConversationMessages")
+}
+
+model Participant {
+  id             String       @id @default(cuid())
+  conversationId String
+  userId         String
+  role           String?      @default("participant") @db.VarChar(50)
+  lastReadAt     DateTime?
+  joinedAt       DateTime     @default(now())
+
+  conversation   Conversation @relation("ConversationParticipants", fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation("UserParticipants", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+}
+
+model Message {
+  id             String        @id @default(cuid())
+  conversationId String
+  senderId       String
+  text           String?       @db.Text
+  attachments    String[]
+  status         MessageStatus @default(PENDING)
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  sender         User          @relation("UserSentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  conversation   Conversation  @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+// ==========================================
+// NOTIFICATIONS
+// ==========================================
+
+model NotificationEvent {
+  id            String         @id @default(cuid())
+  type          String?        @db.VarChar(100)
+  text          String?        @db.Text
+  status        Int?           @default(1) @db.SmallInt
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+
+  notifications Notification[] @relation("EventNotifications")
+}
+
+model Notification {
+  id                  String             @id @default(cuid())
+  senderId            String?
+  receiverId          String?
+  notificationEventId String?
+  entityId            String?
+  status              Int?               @default(1) @db.SmallInt
+  readAt              DateTime?
+
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  deletedAt           DateTime?
+
+  sender              User?              @relation("UserSentNotifications", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver            User?              @relation("UserReceivedNotifications", fields: [receiverId], references: [id], onDelete: Cascade)
+  notificationEvent   NotificationEvent? @relation("EventNotifications", fields: [notificationEventId], references: [id], onDelete: SetNull)
+
+  @@index([receiverId])
+  @@index([senderId])
+  @@index([notificationEventId])
+}
+
+// ==========================================
+// PAYMENTS & TRANSACTIONS
+// ==========================================
+
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum TransactionType {
+  ORDER
+  WITHDRAWAL
+  REFUND
+  TOPUP
+}
+
+model UserPaymentMethod {
+  id              String    @id @default(cuid())
+  userId          String?
+  paymentMethodId String?
+  checkoutId      String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  user            User?     @relation("UserPaymentMethods", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PaymentTransaction {
+  id              String             @id @default(cuid())
+  storeId         String?
+  userId          String?
+  type            TransactionType?   @default(ORDER)
+  status          TransactionStatus? @default(PENDING)
+  withdrawVia     String?            @default("wallet") @db.VarChar(50)
+  provider        String?            @db.VarChar(50)
+  referenceNumber String?            @db.VarChar(100)
+  rawStatus       String?            @db.VarChar(100)
+  currency        String?            @default("USD") @db.VarChar(10)
+  paidCurrency    String?            @db.VarChar(10)
+  amount          Decimal?           @db.Decimal(10, 2)
+  paidAmount      Decimal?           @db.Decimal(10, 2)
+
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  deletedAt       DateTime?
+
+  user            User?              @relation("UserPaymentTransactions", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([referenceNumber])
+  @@index([status])
+}
