@@ -18,15 +18,14 @@ export class ConversationService {
   constructor(
     private prisma: PrismaService,
     private readonly messageGateway: MessageGateway,
-  ) { }
+  ) {}
 
-  // create conversation
-  async create(
-    createConversationDto: CreateConversationDto,
-    sender: string
-  ) {
-
-    const participant_id = createConversationDto.participant_id?.trim();0
+  /*------------------------------------        
+              CREATE CONVERSATION             
+---------------------------------------*/
+  async create(createConversationDto: CreateConversationDto, sender: string) {
+    const participant_id = createConversationDto.participant_id?.trim();
+    0;
 
     if (!participant_id) {
       throw new BadRequestException('participant_id is required');
@@ -90,8 +89,8 @@ export class ConversationService {
             avater: p.user.avatar,
             avatar_url: p.user.avatar
               ? TanvirStorage.url(
-                `${appConfig().storageUrl.avatar}/${p.user.avatar}`,
-              )
+                  `${appConfig().storageUrl.avatar}/${p.user.avatar}`,
+                )
               : null,
           })),
         },
@@ -128,8 +127,8 @@ export class ConversationService {
         avater: p.user.avatar,
         avatar_url: p.user.avatar
           ? TanvirStorage.url(
-            `${appConfig().storageUrl.avatar}/${p.user.avatar}`,
-          )
+              `${appConfig().storageUrl.avatar}/${p.user.avatar}`,
+            )
           : null,
       })),
     };
@@ -141,9 +140,11 @@ export class ConversationService {
     };
   }
 
-  // conversation list of user
-  async findAll(userId: string) {
+  /*------------------------------------        
+        CONVERSATION LIST OF USER          
+---------------------------------------*/
 
+  async findAll(userId: string) {
     const conversations = await this.prisma.conversation.findMany({
       where: {
         participants: {
@@ -183,43 +184,43 @@ export class ConversationService {
     });
 
     const formattedConversations = conversations.map((conv) => {
-
       const opponentParticipant = conv.participants.find(
         (p) => p.userId !== userId,
       );
 
       const opponentUserId = opponentParticipant?.user.id;
 
-      const opponentData = opponentParticipant ? {
-        userId: opponentParticipant.user.id,
-        name: opponentParticipant.user.name,
-        avater: opponentParticipant.user.avatar,
-        avatar_url: opponentParticipant.user.avatar
-          ? TanvirStorage.url(
-            `${appConfig().storageUrl.avatar}/${opponentParticipant.user.avatar}`,
-          )
-          : null,
+      const opponentData = opponentParticipant
+        ? {
+            userId: opponentParticipant.user.id,
+            name: opponentParticipant.user.name,
+            avater: opponentParticipant.user.avatar,
+            avatar_url: opponentParticipant.user.avatar
+              ? TanvirStorage.url(
+                  `${appConfig().storageUrl.avatar}/${opponentParticipant.user.avatar}`,
+                )
+              : null,
 
-          isOnline: this.messageGateway.clients.has(opponentUserId)
-
-      }
+            isOnline: this.messageGateway.clients.has(opponentUserId),
+          }
         : null;
 
       return {
         conversation_id: conv.id,
         opponent: opponentData,
-        lastMessage: conv.messages[0] ? {
-          text: conv.messages[0].text,
-          createdAt: conv.messages[0].createdAt,
-          attachments: conv.messages[0].attachments,
-          attachment_urls: conv.messages[0].attachments
-            ? conv.messages[0].attachments.map((att) =>
-              TanvirStorage.url(
-                `${appConfig().storageUrl.attachment}/${att}`,
-              ),
-            )
-            : [],
-        }
+        lastMessage: conv.messages[0]
+          ? {
+              text: conv.messages[0].text,
+              createdAt: conv.messages[0].createdAt,
+              attachments: conv.messages[0].attachments,
+              attachment_urls: conv.messages[0].attachments
+                ? conv.messages[0].attachments.map((att) =>
+                    TanvirStorage.url(
+                      `${appConfig().storageUrl.attachment}/${att}`,
+                    ),
+                  )
+                : [],
+            }
           : null,
       };
     });
@@ -231,9 +232,10 @@ export class ConversationService {
     };
   }
 
-  // get conversation by id
+  /*------------------------------------        
+       GET SINGLE CONVERSATION BY ID        
+---------------------------------------*/
   async findOne(id: string, userId: string) {
-  
     const conversation = await this.prisma.conversation.findFirst({
       where: {
         id: id,
@@ -286,8 +288,8 @@ export class ConversationService {
         avater: p.user.avatar,
         avatar_url: p.user.avatar
           ? TanvirStorage.url(
-            `${appConfig().storageUrl.avatar}/${p.user.avatar}`,
-          )
+              `${appConfig().storageUrl.avatar}/${p.user.avatar}`,
+            )
           : null,
       })),
       messages: conversation.messages.map((msg) => ({
@@ -299,8 +301,8 @@ export class ConversationService {
           name: msg.sender.name,
           avatar: msg.sender.avatar
             ? TanvirStorage.url(
-              `${appConfig().storageUrl.avatar}/${msg.sender.avatar}`,
-            )
+                `${appConfig().storageUrl.avatar}/${msg.sender.avatar}`,
+              )
             : null,
         },
       })),
@@ -313,7 +315,9 @@ export class ConversationService {
     };
   }
 
-  // delete conversation
+  /*------------------------------------        
+        DELETE CONVERSATION              
+---------------------------------------*/
   async remove(id: string, userId: string) {
     const conversation = await this.prisma.conversation.findFirst({
       where: {
@@ -343,48 +347,4 @@ export class ConversationService {
       success: true,
     };
   }
-
-  // user information
-  async findAllUserInfo(userId: string) {
-    
-    const users = await this.prisma.user.findMany({
-      where: {
-        id: {not: userId},
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatar: true,
-        type: true,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
-
-    const formattedUsers = users.map((user) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar
-        ? TanvirStorage.url(
-            `${appConfig().storageUrl.avatar}/${user.avatar}`,
-          )
-        : null,
-      type: user.type,
-    }));
-
-    return {
-      message: 'Users retrieved successfully',
-      success: true,
-      data: formattedUsers,
-    };
-  }
-
-
-
-
-
-
 }

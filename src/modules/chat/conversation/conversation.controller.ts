@@ -23,54 +23,44 @@ import { Roles } from '../../../common/guard/role/roles.decorator';
 export class ConversationController {
   constructor(private readonly conversationService: ConversationService) {}
 
-  // create conversation
+  /*------------------------------------        
+              CREATE CONVERSATION             
+---------------------------------------*/
   @Post('create-conversation')
-  @ApiOperation({ summary: 'Create a new conversation' })
   async create(
     @Body() createConversationDto: CreateConversationDto,
     @Req() req,
   ) {
     const user = req.user.userId;
     console.log(user);
-    return this.conversationService.create(
-      createConversationDto, 
-      user
-    );
+    return this.conversationService.create(createConversationDto, user);
   }
 
-  // conversation list of user
-  @Get('conversation-list') 
-  @ApiOperation({ summary: 'Get all conversations for the authenticated user' })
-  async findAll(@Req() req) { 
-    const user = req.user.userId; 
+  /*------------------------------------        
+         CONVERSATION LIST OF USER          
+---------------------------------------*/
+  @Get('conversation-list')
+  async findAll(@Req() req) {
+    const user = req.user.userId;
     return this.conversationService.findAll(user);
   }
 
-  // get conversation by id
+  /*------------------------------------        
+       GET SINGLE CONVERSATION BY ID        
+---------------------------------------*/
   @Get('single-conversation/:id')
-  @ApiOperation({ summary: 'Get a single conversation by ID' })
-  asyncfindOne(@Param('id') id: string, @Req() req) {
+  async findOne(@Param('id') id: string, @Req() req) {
     const user = req.user.userId;
     return this.conversationService.findOne(id, user);
   }
 
-  // delete conversation
+  /*------------------------------------        
+        DELETE CONVERSATION              
+---------------------------------------*/
+
   @Delete('delete-conversation/:id')
-  @ApiOperation({ summary: 'Delete a conversation by ID' })
   async remove(@Param('id') id: string, @Req() req) {
     const user = req.user.userId;
     return this.conversationService.remove(id, user);
   }
-
-
-  // user information
-  @Get('all-user')
-  async findAllUser(
-    @Req() req,
-  ) {
-    const user = req.user.userId;
-    return this.conversationService.findAllUserInfo(user);
-  }
-
-
 }
