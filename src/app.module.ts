@@ -23,6 +23,7 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { PrometheusModule } from './prometheus/prometheus.module';
 import { RepositoryModule } from './common/repository/repository.module';
 import { CronModule } from './modules/cron/cron.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { CronModule } from './modules/cron/cron.module';
     PaymentModule,
     PrometheusModule,
     CronModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [

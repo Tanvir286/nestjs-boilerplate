@@ -17,8 +17,10 @@ import appConfig from '../../config/app.config';
 import { MailService } from '../../mail/mail.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from '../admin/user/entities/user.entity';
-import { sendAdminNotification, sendUserNotification } from 'src/common/utils/notification.util';
+import {
+  sendAdminNotification,
+  sendUserNotification,
+} from 'src/common/utils/notification.util';
 
 @Injectable()
 export class AuthService {
@@ -43,63 +45,10 @@ export class AuthService {
     return TanvirStorage.url(appConfig().storageUrl.avatar + '/' + avatar);
   }
 
-  //active deactive
-  async activeDeactive(userId: string) {
+  /*------------------------------------
+               USER DETAILS              
+---------------------------------------*/
 
-    try{
-      const user = await this.prisma.user.findFirst({
-        where: {
-          id: userId,
-        },
-        select: {
-          id: true,
-          email: true,
-          active: true,
-        },
-      });
-
-      if (!user) {
-        return {
-          success: false,
-          message: 'User not found',
-        };
-      }
-
-      const seedEmails = ['admin@gmail.com', 'maid@gmail.com', 'homeowner@gmail.com'];
-      if (seedEmails.includes(user.email)) {
-        return {
-          success: false,
-          message: 'Seed users cannot be deactivated',
-        };
-      }
-
-      const updated = await this.prisma.user.update({
-        where: {
-          id: userId,
-        },
-        data: {
-          active: user.active ? false : true,
-        },
-      });
-
-      return {
-        success: true,
-        message: 'Active status toggled successfully',
-        data: { active: updated.active },
-      };
-
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-    
-
-  }
-
-
-  // me
   async me(userId: string) {
     try {
       const user = await this.prisma.user.findFirst({
@@ -146,7 +95,10 @@ export class AuthService {
     }
   }
 
-  // register
+  /*------------------------------------
+           USER REGISTER               
+---------------------------------------*/
+
   async register({
     first_name,
     last_name,
@@ -208,12 +160,11 @@ export class AuthService {
             id: user.data.id,
           },
           data: {
-            billing_id: stripeCustomer.id,
+            billingId: stripeCustomer.id,
           },
         });
       }
 
-      // ----------------------------------------------------
       // create otp code
       const token = await this.ucodeRepository.createToken({
         userId: user.data.id,
@@ -236,13 +187,6 @@ export class AuthService {
         entity_id: user.data.id,
       });
 
-      await sendAdminNotification({
-        sender_id: user.data.id,
-        text: `${name} has registered a new account`,
-        type: 'new user registration',
-        entity_id: user.data.id,
-      });
-
       return {
         success: true,
         message: 'We have sent an OTP code to your email',
@@ -255,26 +199,120 @@ export class AuthService {
     }
   }
 
-  // login
+  /*------------------------------------
+               VERIFY EMAIL               
+---------------------------------------*/
+
+  async verifyEmail({ email, token }) {
+    try {
+      const user = await this.userRepository.exist({
+        field: 'email',
+        value: email,
+      });
+
+      if (user) {
+        const existToken = await this.ucodeRepository.validateToken({
+          email: email,
+          token: token,
+        });
+
+        if (existToken) {
+          await this.prisma.user.update({
+            where: {
+              id: user.id,
+            },
+            data: {
+              emailVerifiedAt: new Date(Date.now()),
+            },
+          });
+
+          await sendUserNotification({
+            sender_id: 'system',
+            receiver_id: user.id,
+            text: 'Your email has been verified successfully',
+            type: 'email verification',
+            entity_id: user.id,
+          });
+
+          return {
+            success: true,
+            message: 'Email verified successfully',
+          };
+        } else {
+          return {
+            success: false,
+            message: 'Invalid token',
+          };
+        }
+      } else {
+        return {
+          success: false,
+          message: 'Email not found',
+        };
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
+  }
+
+  /*------------------------------------
+      Resend Email  Verification               
+---------------------------------------*/
+
+  async resendVerificationEmail(email: string) {
+    try {
+      const user = await this.userRepository.getUserByEmail(email);
+
+      if (user) {
+        // create otp code
+        const token = await this.ucodeRepository.createToken({
+          userId: user.id,
+          isOtp: true,
+        });
+
+        // send otp code to email
+        await this.mailService.sendOtpCodeToEmail({
+          email: email,
+          name: user.name,
+          otp: token,
+        });
+
+        return {
+          success: true,
+          message: 'We have sent a verification code to your email',
+        };
+      } else {
+        return {
+          success: false,
+          message: 'Email not found',
+        };
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
+  }
+
+  /*------------------------------------
+                  USER LOGIN               
+---------------------------------------*/
+
   async login({ email, userId, fcm_token, device_type }) {
     try {
       const user = await this.userRepository.getUserDetails(userId);
 
       // Check email verification
-      if (!user?.email_verified_at) {
+      if (!user?.emailVerifiedAt) {
         return {
           success: false,
-          message: 'Please verify your email before logging in. Check your inbox for the verification code.',
+          message:
+            'Please verify your email before logging in. Check your inbox for the verification code.',
           email_verified: false,
-        };
-      }
-
-      // Check if user is active
-      if (user?.active === false) {
-        return {
-          success: false,
-          deactive: true,
-          message: 'Your account is deactivated. Please contact support.',
         };
       }
 
@@ -284,8 +322,8 @@ export class AuthService {
         await this.prisma.user.update({
           where: { id: userId },
           data: {
-            fcm_token: fcm_token,
-            device_type: device_type ?? null,
+            fcmToken: fcm_token,
+            deviceType: device_type ?? null,
           },
         });
       }
@@ -320,47 +358,9 @@ export class AuthService {
     }
   }
 
-  // save fcm token
-  async saveFcmToken({
-    user_id,
-    fcm_token,
-    device_type,
-  }: {
-    user_id: string;
-    fcm_token: string;
-    device_type?: string;
-  }) {
-    try {
-      const user = await this.userRepository.getUserDetails(user_id);
-
-      if (!user) {
-        return {
-          success: false,
-          message: 'User not found',
-        };
-      }
-
-      await this.prisma.user.update({
-        where: { id: user_id },
-        data: {
-          fcm_token: fcm_token,
-          device_type: device_type ?? null,
-        },
-      });
-
-      return {
-        success: true,
-        message: 'FCM token saved successfully',
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
-
-  // update user
+  /*------------------------------------
+               USER UPDATE               
+---------------------------------------*/
   async updateUser(
     userId: string,
     updateUserDto: UpdateUserDto,
@@ -440,7 +440,10 @@ export class AuthService {
     }
   }
 
-  // forgot password
+  /*------------------------------------
+               FORGOT PASSWORD               
+---------------------------------------*/
+
   async forgotPassword(email) {
     try {
       const user = await this.userRepository.exist({
@@ -486,178 +489,10 @@ export class AuthService {
     }
   }
 
-  // resend token
-  async resendToken(email: string) {
-    try {
-      const user = await this.userRepository.getUserByEmail(email);
+  /*------------------------------------
+         Reset PASSWORD                
+---------------------------------------*/
 
-      if (user) {
-        // create otp code
-        const token = await this.ucodeRepository.createToken({
-          userId: user.id,
-          isOtp: true,
-          time: 2,
-        });
-
-        // send otp code to email
-        await this.mailService.sendOtpCodeToEmail({
-          email: email,
-          name: user.name,
-          otp: token,
-        });
-
-        return {
-          success: true,
-          message: 'We have sent a token code to your email',
-        };
-      } else {
-        return {
-          success: false,
-          message: 'Email not found',
-        };
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
-
-  // verify token
-  async verifyToken({ email, token }) {
-    try {
-      const user = await this.userRepository.exist({
-        field: 'email',
-        value: email,
-      });
-
-      if (user) {
-        const result = await this.ucodeRepository.verifyToken({
-          email: email,
-          token: token,
-        });
-
-        // Check the actual success property, not just if object exists
-        if (result && result.success) {
-          return {
-            success: true,
-            message: result.message || 'Token verified successfully',
-          };
-        } else {
-          return {
-            success: false,
-            message: result?.message || 'Invalid token',
-          };
-        }
-      } else {
-        return {
-          success: false,
-          message: 'Email not found',
-        };
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
-
-  // verify email
-  async verifyEmail({ email, token }) {
-    try {
-      const user = await this.userRepository.exist({
-        field: 'email',
-        value: email,
-      });
-
-      if (user) {
-        const existToken = await this.ucodeRepository.validateToken({
-          email: email,
-          token: token,
-        });
-
-        if (existToken) {
-          await this.prisma.user.update({
-            where: {
-              id: user.id,
-            },
-            data: {
-              email_verified_at: new Date(Date.now()),
-            },
-          });
-
-          await sendUserNotification({
-            sender_id: 'system',
-            receiver_id: user.id,
-            text: 'Your email has been verified successfully',
-            type: 'email verification',
-            entity_id: user.id,
-          });
-
-          return {
-            success: true,
-            message: 'Email verified successfully',
-          };
-        } else {
-          return {
-            success: false,
-            message: 'Invalid token',
-          };
-        }
-      } else {
-        return {
-          success: false,
-          message: 'Email not found',
-        };
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
-
-  // resend verification email
-  async resendVerificationEmail(email: string) {
-    try {
-      const user = await this.userRepository.getUserByEmail(email);
-
-      if (user) {
-        // create otp code
-        const token = await this.ucodeRepository.createToken({
-          userId: user.id,
-          isOtp: true,
-        });
-
-        // send otp code to email
-        await this.mailService.sendOtpCodeToEmail({
-          email: email,
-          name: user.name,
-          otp: token,
-        });
-
-        return {
-          success: true,
-          message: 'We have sent a verification code to your email',
-        };
-      } else {
-        return {
-          success: false,
-          message: 'Email not found',
-        };
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
-
-  // reset password
   async resetPassword({ email, token, password }) {
     try {
       const user = await this.userRepository.exist({
@@ -707,7 +542,93 @@ export class AuthService {
     }
   }
 
-  // change password
+  /*------------------------------------        
+               RESEND TOKEN              
+---------------------------------------*/
+
+  async resendToken(email: string) {
+    try {
+      const user = await this.userRepository.getUserByEmail(email);
+
+      if (user) {
+        // create otp code
+        const token = await this.ucodeRepository.createToken({
+          userId: user.id,
+          isOtp: true,
+          time: 2,
+        });
+
+        // send otp code to email
+        await this.mailService.sendOtpCodeToEmail({
+          email: email,
+          name: user.name,
+          otp: token,
+        });
+
+        return {
+          success: true,
+          message: 'We have sent a token code to your email',
+        };
+      } else {
+        return {
+          success: false,
+          message: 'Email not found',
+        };
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
+  }
+
+  /*------------------------------------        
+               VERIFY TOKEN              
+---------------------------------------*/
+
+  async verifyToken({ email, token }) {
+    try {
+      const user = await this.userRepository.exist({
+        field: 'email',
+        value: email,
+      });
+
+      if (user) {
+        const result = await this.ucodeRepository.verifyToken({
+          email: email,
+          token: token,
+        });
+
+        // Check the actual success property, not just if object exists
+        if (result && result.success) {
+          return {
+            success: true,
+            message: result.message || 'Token verified successfully',
+          };
+        } else {
+          return {
+            success: false,
+            message: result?.message || 'Invalid token',
+          };
+        }
+      } else {
+        return {
+          success: false,
+          message: 'Email not found',
+        };
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
+  }
+
+  /*------------------------------------        
+               CHANGE PASSWORD              
+---------------------------------------*/
   async changePassword({ user_id, oldPassword, newPassword }) {
     try {
       const user = await this.userRepository.getUserDetails(user_id);
@@ -747,282 +668,9 @@ export class AuthService {
     }
   }
 
-  /*----------------------------------------------
-  // topic: maid Verification Part Start ---------->
-  -----------------------------------------------*/
-
-  // submit verification
-  async submitVerification(
-    userId: string,
-    front_page?: Express.Multer.File,
-    back_page?: Express.Multer.File,
-    resume?: Express.Multer.File,
-  ) {
-    try {
-      const data: any = {};
-
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, type: true },
-      });
-
-      if (!user) {
-        return {
-          success: false,
-          message: 'User not found',
-        };
-      }
-
-      if (user.type !== 'MAID') {
-        return {
-          success: false,
-          message: 'Only maid can submit verification',
-        };
-      }
-
-      if (!front_page || !back_page) {
-        return {
-          success: false,
-          message: 'front_page and back_page are required',
-        };
-      }
-
-      if (!resume) {
-        return {
-          success: false,
-          message: 'resume is required',
-        };
-      }
-
-      const existingVerification = await this.prisma.cleanerVerification.findFirst(
-        {
-          where: { user_id: userId },
-          orderBy: { created_at: 'desc' },
-        },
-      );
-
-      if (existingVerification && existingVerification.status === 'PENDING') {
-        return {
-          success: false,
-          message:
-            'You already have a pending verification. Please wait for it to be reviewed before submitting a new one.',
-          data: {
-            id: existingVerification.id,
-            status: existingVerification.status,
-          },
-        };
-      }
-
-      // resume upload
-      if (resume) {
-        // upload resume
-        const resumeFileName = `${StringHelper.randomString()}_${resume.originalname}`;
-        await TanvirStorage.put(
-          appConfig().storageUrl.maidResume + '/' + resumeFileName,
-          resume.buffer,
-        );
-        data.resume = resumeFileName;
-      }
-
-      // id card upload
-      if (front_page && back_page) {
-        // upload front page
-        const frontFileName = `${StringHelper.randomString()}_${front_page.originalname}`;
-        await TanvirStorage.put(
-          appConfig().storageUrl.maidverification + '/' + frontFileName,
-          front_page.buffer,
-        );
-        data.id_card_front = frontFileName;
-
-        // upload back page
-        const backFileName = `${StringHelper.randomString()}_${back_page.originalname}`;
-        await TanvirStorage.put(
-          appConfig().storageUrl.maidverification + '/' + backFileName,
-          back_page.buffer,
-        );
-        data.id_card_back = backFileName;
-      }
-
-      await this.prisma.cleanerVerification.create({
-        data: {
-          user_id: userId,
-          id_card_front: data.id_card_front,
-          id_card_back: data.id_card_back,
-          resume: data.resume,
-          status: 'PENDING',
-        },
-      });
-
-      return {
-        success: true,
-        message: 'Verification submitted successfully',
-        data: {
-          front_page_url: TanvirStorage.url(
-            appConfig().storageUrl.maidverification + '/' + data.id_card_front,
-          ),
-          back_page_url: TanvirStorage.url(
-            appConfig().storageUrl.maidverification + '/' + data.id_card_back,
-          ),
-          resume_url: TanvirStorage.url(
-            appConfig().storageUrl.maidResume + '/' + data.resume,
-          ),
-        },
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
-
-  // get verification status
-  async getVerificationStatus(userId: string) {
-    try {
-      const verification = await this.prisma.cleanerVerification.findFirst({
-        where: { user_id: userId },
-        orderBy: { created_at: 'desc' },
-      });
-
-      if (!verification) {
-        return {
-          success: true,
-          message: 'No verification submission found',
-          data: null,
-        };
-      }
-
-      let title = 'Under Review';
-      let short_status = 'UNDER_REVIEW';
-
-      if (verification.status === 'VERIFIED') {
-        title = 'Approved By Admin';
-        short_status = 'APPROVED';
-      }
-
-      if (verification.status === 'REJECTED') {
-        title = 'Rejected';
-        short_status = 'REJECTED';
-      }
-
-      return {
-        success: true,
-        data: {
-          id: verification.id,
-          status: verification.status,
-          short_status,
-          title,
-          rejected_reason: verification.rejected_reason || null,
-          submission_date: verification.created_at,
-          approval_date: verification.verified_at,
-          verification_documents: {
-            id_card_front_url: verification.id_card_front
-              ? TanvirStorage.url(
-                  appConfig().storageUrl.maidverification +
-                    '/' +
-                    verification.id_card_front,
-                )
-              : null,
-            id_card_back_url: verification.id_card_back
-              ? TanvirStorage.url(
-                  appConfig().storageUrl.maidverification +
-                    '/' +
-                    verification.id_card_back,
-                )
-              : null,
-            resume_url: verification.resume
-              ? TanvirStorage.url(
-                  appConfig().storageUrl.maidResume + '/' + verification.resume,
-                )
-              : null,
-          },
-        },
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
-
-  /*----------------------------------------------
-  // topic: maid Verification Part End ---------->
-  -----------------------------------------------*/
-
-  // ---------------------------------(end)---------------------------------------
-
-  async refreshToken(user_id: string, refreshToken: string) {
-    try {
-      const storedToken = await this.redis.get(`refresh_token:${user_id}`);
-
-      if (!storedToken || storedToken != refreshToken) {
-        return {
-          success: false,
-          message: 'Refresh token is required',
-        };
-      }
-
-      if (!user_id) {
-        return {
-          success: false,
-          message: 'User not found',
-        };
-      }
-
-      const userDetails = await this.userRepository.getUserDetails(user_id);
-      if (!userDetails) {
-        return {
-          success: false,
-          message: 'User not found',
-        };
-      }
-
-      const payload = {
-        email: userDetails.email,
-        sub: userDetails.id,
-        type: userDetails.type,
-      };
-      const accessToken = this.jwtService.sign(payload, { expiresIn: '1h' });
-
-      return {
-        success: true,
-        authorization: {
-          type: 'bearer',
-          access_token: accessToken,
-        },
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
-
-  async revokeRefreshToken(user_id: string) {
-    try {
-      const storedToken = await this.redis.get(`refresh_token:${user_id}`);
-      if (!storedToken) {
-        return {
-          success: false,
-          message: 'Refresh token not found',
-        };
-      }
-
-      await this.redis.del(`refresh_token:${user_id}`);
-
-      return {
-        success: true,
-        message: 'Refresh token revoked successfully',
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
+  /*------------------------------------        
+        REQUEST  EMAIL  CHANGE             
+---------------------------------------*/
 
   async requestEmailChange(user_id: string, email: string) {
     try {
@@ -1057,6 +705,10 @@ export class AuthService {
       };
     }
   }
+
+  /*------------------------------------        
+        REQUEST  EMAIL  CHANGE             
+---------------------------------------*/
 
   async changeEmail({
     user_id,
@@ -1113,6 +765,9 @@ export class AuthService {
     }
   }
 
+  /*------------------------------------        
+              VALIDATE USER             
+---------------------------------------*/
   async validateUser(
     email: string,
     pass: string,
@@ -1126,7 +781,7 @@ export class AuthService {
     });
 
     if (user) {
-      if (user.active === false) {
+      if (user.status === 'SUSPENDED') {
         throw new UnauthorizedException({
           success: false,
           deactive: true,
@@ -1140,7 +795,7 @@ export class AuthService {
       });
       if (_isValidPassword) {
         // Check if email is verified
-        if (!user.email_verified_at) {
+        if (!user.emailVerifiedAt) {
           throw new UnauthorizedException(
             'Please verify your email before logging in',
           );
@@ -1181,87 +836,9 @@ export class AuthService {
     }
   }
 
-  // --------- 2FA ---------
-  async generate2FASecret(user_id: string) {
-    try {
-      return await this.userRepository.generate2FASecret(user_id);
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
-
-  async verify2FA(user_id: string, token: string) {
-    try {
-      const isValid = await this.userRepository.verify2FA(user_id, token);
-      if (!isValid) {
-        return {
-          success: false,
-          message: 'Invalid token',
-        };
-      }
-      return {
-        success: true,
-        message: '2FA verified successfully',
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
-
-  async enable2FA(user_id: string) {
-    try {
-      const user = await this.userRepository.getUserDetails(user_id);
-      if (user) {
-        await this.userRepository.enable2FA(user_id);
-        return {
-          success: true,
-          message: '2FA enabled successfully',
-        };
-      } else {
-        return {
-          success: false,
-          message: 'User not found',
-        };
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
-
-  async disable2FA(user_id: string) {
-    try {
-      const user = await this.userRepository.getUserDetails(user_id);
-      if (user) {
-        await this.userRepository.disable2FA(user_id);
-        return {
-          success: true,
-          message: '2FA disabled successfully',
-        };
-      } else {
-        return {
-          success: false,
-          message: 'User not found',
-        };
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
-  }
-  // --------- end 2FA ---------
-
-  // Firebase Google Authentication
+  /*------------------------------------        
+     FIREBASE GOOGLE AUTHENTICATION              
+---------------------------------------*/
   async firebaseGoogleAuth(idToken: string, fcm_token?: string) {
     try {
       const decodedToken = await admin.auth().verifyIdToken(idToken);
@@ -1360,7 +937,9 @@ export class AuthService {
     }
   }
 
-  // Firebase Apple Authentication
+  /*------------------------------------        
+     FIREBASE APPLE AUTHENTICATION              
+---------------------------------------*/
   async firebaseAppleAuth(idToken: string, fcm_token?: string) {
     try {
       const decodedToken = await admin.auth().verifyIdToken(idToken);

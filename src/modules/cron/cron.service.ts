@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { autoRejectPendingBookings } from './utils/cron.util';
+
 
 @Injectable()
 export class CronService {
@@ -13,13 +13,14 @@ export class CronService {
   @Cron(CronExpression.EVERY_DAY_AT_2AM)
   handleDailyTask() {
     this.logger.debug('Running daily cron task at 2 AM');
-    // Add your cron logic here
+    //add code here
   }
 
   // Runs every 30 minutes 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron(CronExpression.EVERY_6_HOURS)
   async handleInterval() {
     this.logger.debug('Running interval task every 30 minutes');
-    await autoRejectPendingBookings(this.prisma);
+    //add code here
   }
+
 }

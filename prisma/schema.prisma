@@ -7,11 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 /* -------------------------------------------
              USER & AUTHENTICATION
 ------------------------------------------- */
-
 
 enum UserType {
   ADMIN
@@ -79,6 +77,7 @@ model User {
 
   @@index([email])
   @@index([type, status])
+  @@map("users")
 }
 
 model Account {
@@ -102,6 +101,7 @@ model Account {
 
   @@unique([provider, providerAccountId])
   @@index([userId])
+  @@map("accounts")
 }
 
 model Ucode {
@@ -120,11 +120,11 @@ model Ucode {
 
   @@index([userId])
   @@index([token])
+  @@map("ucodes")
 }
-
-// ==========================================
-// CHAT & CONVERSATION
-// ==========================================
+/* -------------------------------------------
+             CHAT & CONVERSATION
+------------------------------------------- */
 
 enum MessageStatus {
   PENDING
@@ -141,6 +141,8 @@ model Conversation {
 
   participants Participant[] @relation("ConversationParticipants")
   messages     Message[]     @relation("ConversationMessages")
+
+  @@map("conversations")
 }
 
 model Participant {
@@ -157,6 +159,7 @@ model Participant {
   @@unique([conversationId, userId])
   @@index([userId])
   @@index([conversationId])
+  @@map("participants")
 }
 
 model Message {
@@ -175,11 +178,12 @@ model Message {
 
   @@index([conversationId])
   @@index([senderId])
+  @@map("messages")
 }
 
-// ==========================================
-// NOTIFICATIONS
-// ==========================================
+/* -------------------------------------------
+                 NOTIFICATIONS
+------------------------------------------- */
 
 model NotificationEvent {
   id            String         @id @default(cuid())
@@ -192,6 +196,8 @@ model NotificationEvent {
   deletedAt     DateTime?
 
   notifications Notification[] @relation("EventNotifications")
+
+  @@map("notification_events")
 }
 
 model Notification {
@@ -214,12 +220,12 @@ model Notification {
   @@index([receiverId])
   @@index([senderId])
   @@index([notificationEventId])
+  @@map("notifications")
 }
 
-// ==========================================
-// PAYMENTS & TRANSACTIONS
-// ==========================================
-
+/* -------------------------------------------
+                PAYMENTS & TRANSACTIONS
+------------------------------------------- */
 
 enum TransactionStatus {
   PENDING
@@ -248,6 +254,7 @@ model UserPaymentMethod {
   user            User?     @relation("UserPaymentMethods", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@map("user_payment_methods")
 }
 
 model PaymentTransaction {
@@ -274,4 +281,5 @@ model PaymentTransaction {
   @@index([userId])
   @@index([referenceNumber])
   @@index([status])
+  @@map("payment_transactions")
 }
