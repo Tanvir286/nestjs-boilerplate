@@ -31,7 +31,7 @@ export class MessageService {
   ) {}
 
 
-  //
+  
   private formatConversationParticipant(user: {
     id: string;
     name: string | null;
@@ -120,7 +120,12 @@ export class MessageService {
     };
   }
 
-  async openOrCreateConversation(
+
+   /*------------------------------------        
+        OPEN OR CREATE CONVERSATION                 
+  --------------------------------------*/
+
+   async openOrCreateConversation(
     openOrCreateConversationDto: OpenOrCreateConversationDto,
     sender: string,
   ) {
@@ -192,8 +197,12 @@ export class MessageService {
     };
   }
 
-  // *Send message (with Prisma transaction)
-  async create(
+
+  /*------------------------------------        
+           SEND MESSAGE                 
+  --------------------------------------*/
+  
+  async create_message(
     createMessageDto: CreateMessageDto,
     sender: string,
     files?: Express.Multer.File[],
@@ -279,7 +288,6 @@ export class MessageService {
       },
     };
 
-    // note: socket implementation for message sending
     const senderSocketId = this.messageGateway.clients.get(sender);
 
     if (senderSocketId) {
@@ -297,20 +305,18 @@ export class MessageService {
       });
     }
 
-    /*
-     socket.on('message', (msg) => {
-      console.log('New message received:', msg);
-    });
-    */
-
     return {
       message: 'Message sent successfully',
       success: true,
       data: formatted,
     };
   }
-
-  // *get all messages for a conversation
+ 
+ 
+  /*------------------------------------        
+     GET ALL MESSAGE FOR A CONVERSATION                 
+  --------------------------------------*/
+ 
   async findAll(
     conversationId: string,
     userId: string,
@@ -366,18 +372,8 @@ export class MessageService {
 
     const oppositeUserId = receiverParticipant?.userId;
 
-    const avgreview = oppositeUserId
-      ? await this.prisma.review.aggregate({
-          where:
-            receiverParticipant?.user.type === 'MAID'
-              ? { cleaner_id: oppositeUserId }
-              : { homeowner_id: oppositeUserId },
-          _avg: {
-            rating: true,
-          },
-        })
-      : null;
-
+    const avgreview = null;
+    
     const formattedReceiverWithReview = receiverParticipant
       ? {
           id: receiverParticipant.user.id,
@@ -454,7 +450,10 @@ export class MessageService {
     };
   }
 
-  // Delete a message
+  /*------------------------------------        
+     DELETE MESSAGE                 
+  --------------------------------------*/
+  
   async deleteMessage(userId: string, messageId: string) {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
@@ -493,93 +492,7 @@ export class MessageService {
     };
   }
 
-  // unread message count
-  async getUnreadMessage(userId: string, conversationId: string) {
-    const participant = await this.prisma.participant.findFirst({
-      where: { conversationId, userId },
-    });
+ 
 
-    if (!participant) {
-      throw new UnauthorizedException(
-        'You are not a participant of this conversation.',
-      );
-    }
 
-    const lastReadAt = participant.lastReadAt || new Date(0);
-
-    const whereClause = {
-      conversationId,
-      NOT: { status: MessageStatus.READ },
-      senderId: { not: userId },
-      createdAt: { gt: lastReadAt },
-    };
-
-    const [unreadCount, unreadMessages] = await this.prisma.$transaction([
-      this.prisma.message.count({ where: whereClause }),
-      this.prisma.message.findMany({
-        where: whereClause,
-        orderBy: { createdAt: 'asc' },
-        include: {
-          sender: {
-            select: { id: true, name: true, email: true, avatar: true },
-          },
-        },
-      }),
-    ]);
-
-    const formattedMessages = unreadMessages.map((msg) => ({
-      id: msg.id,
-      text: msg.text,
-      senderName: msg.sender.name,
-      attachments: (msg.attachments || []).map((f) =>
-        TanvirStorage.url(`${appConfig().storageUrl.attachment}/${f}`),
-      ),
-    }));
-
-    return {
-      message: 'Unread message count retrieved successfully',
-      success: true,
-      data: {
-        count: unreadCount,
-        messages: formattedMessages,
-      },
-    };
-  }
-
-  // Mark messages as read
-  async readMessages(userId: string, conversationId: string) {
-    const participant = await this.prisma.participant.findFirst({
-      where: { conversationId, userId },
-    });
-
-    if (!participant) {
-      throw new UnauthorizedException(
-        'You are not a participant of this conversation.',
-      );
-    }
-
-    const lastReadAt = participant.lastReadAt || new Date(0);
-
-    await this.prisma.$transaction(async (tx) => {
-      await tx.message.updateMany({
-        where: {
-          conversationId,
-          senderId: { not: userId },
-          status: { not: 'READ' },
-          createdAt: { gt: lastReadAt },
-        },
-        data: { status: 'READ' },
-      });
-
-      await tx.participant.update({
-        where: { id: participant.id },
-        data: { lastReadAt: new Date() },
-      });
-    });
-
-    return {
-      message: 'Messages marked as read successfully',
-      success: true,
-    };
-  }
 }

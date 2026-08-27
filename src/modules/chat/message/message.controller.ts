@@ -30,13 +30,30 @@ import { PaginationDto } from 'src/common/pagination';
 @UseGuards(JwtAuthGuard)
 @Controller('chat/message')
 export class MessageController {
-  constructor(
-    private readonly messageService: MessageService,
-    private readonly messageGateway: MessageGateway,
-  ) { }
+  constructor(private readonly messageService: MessageService) {}
 
 
-  //*send message
+  /*------------------------------------        
+        OPEN OR CREATE CONVERSATION                 
+  --------------------------------------*/
+  @Post('open-or-create-conversation')
+  @ApiOperation({
+    summary: 'Open an existing conversation or create a new one',
+  })
+  async openOrCreateConversation(
+    @Body() openOrCreateConversationDto: OpenOrCreateConversationDto,
+    @Req() req: any,
+  ) {
+    const user = req.user.userId;
+    return this.messageService.openOrCreateConversation(
+      openOrCreateConversationDto,
+      user,
+    );
+  }
+
+  /*------------------------------------        
+           SEND MESSAGE                 
+  --------------------------------------*/
   @Post('send-message')
   @UseInterceptors(
     FilesInterceptor('attachments', 10, {
@@ -53,29 +70,14 @@ export class MessageController {
   ) {
     const user = req.user.userId;
     console.log(`User ID: ${user}`);
-    return this.messageService.create(createMessageDto, user, files);
+    return this.messageService.create_message(createMessageDto, user, files);
   }
-
-  //*open or create conversation when user is clicked
-  @Post('open-or-create-conversation')
-  @ApiOperation({
-    summary: 'Open an existing conversation or create a new one',
-  })
-  async openOrCreateConversation(
-    @Body() openOrCreateConversationDto: OpenOrCreateConversationDto,
-    @Req() req: any,
-  ) {
-    const user = req.user.userId;
-    return this.messageService.openOrCreateConversation(
-      openOrCreateConversationDto,
-      user,
-    );
-  }
-
-
 
   
-  //*get all message for a conversation
+  /*------------------------------------        
+     GET ALL MESSAGE FOR A CONVERSATION                 
+  --------------------------------------*/
+
   @Get('all-message/:conversationId')
   async findAll(
     @Param('conversationId') conversationId: string,
@@ -86,8 +88,10 @@ export class MessageController {
    return this.messageService.findAll(conversationId, user, paginationdto);
   }
  
+  /*------------------------------------        
+     DELETE MESSAGE                 
+  --------------------------------------*/
 
-  // delete message
   @Delete('delete-message/:messageId')
   async deleteMessage(
     @Param('messageId') messageId: string,
@@ -97,26 +101,6 @@ export class MessageController {
     return this.messageService.deleteMessage(user, messageId);
   }
   
-
-   // unread message count
-  @Get('unread-message/:conversationId')
-  async getUnreadMessageCount(
-    @Param('conversationId') conversationId: string,
-    @Req() req: any,
-  ) {
-    const user = req.user.userId;
-    return this.messageService.getUnreadMessage(user, conversationId);
-  }
-
-  // read messages
-  @Get('read-message/:conversationId')
-  async readMessages(
-    @Param('conversationId') conversationId: string,
-    @Req() req: any,
-  ) {
-    const user = req.user.userId;
-    return this.messageService.readMessages(user, conversationId);
-  }
 
  
 }
