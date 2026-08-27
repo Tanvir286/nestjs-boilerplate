@@ -77,10 +77,10 @@ export class NotificationRepository {
 
       const newNotification = await prisma.notification.create({
         data: {
-          sender_id: safeSenderId,
-          receiver_id,
-          entity_id,
-          notification_event_id: notificationEvent.id,
+          senderId: safeSenderId,
+          receiverId: receiver_id,
+          entityId: entity_id,
+          notificationEventId: notificationEvent.id,
         },
       });
 
@@ -110,12 +110,12 @@ export class NotificationRepository {
     try {
       const user = await prisma.user.findUnique({
         where: { id: receiverId },
-        select: { fcm_token: true },
+        select: { fcmToken: true },
       });
 
-      if (user?.fcm_token) {
+      if (user?.fcmToken) {
         const message: admin.messaging.Message = {
-          token: user.fcm_token,
+          token: user.fcmToken,
           notification: {
             title: this.getNotificationTitle(type),
             body: text,

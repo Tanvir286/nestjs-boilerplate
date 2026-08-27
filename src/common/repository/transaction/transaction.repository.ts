@@ -32,7 +32,7 @@ export class TransactionRepository {
       data['currency'] = currency;
     }
     if (reference_number) {
-      data['reference_number'] = reference_number;
+      data['referenceNumber'] = reference_number;
     }
     if (status) {
       data['status'] = status;
@@ -82,7 +82,7 @@ export class TransactionRepository {
 
     const paymentTransaction = await this.prisma.paymentTransaction.findMany({
       where: {
-        reference_number: reference_number,
+        referenceNumber: reference_number,
       },
     });
 
@@ -100,7 +100,7 @@ export class TransactionRepository {
 
     return await this.prisma.paymentTransaction.updateMany({
       where: {
-        reference_number: reference_number,
+        referenceNumber: reference_number,
       },
       data: {
         ...data,

@@ -39,26 +39,6 @@ export class ChatRepository {
     });
   }
 
-  /**
-   * Update user status
-   * @returns
-   */
-  async updateUserStatus(user_id: string, availability: boolean) {
-    // if user exist
-    const user = await this.prisma.user.findFirst({
-      where: {
-        id: user_id,
-      },
-    });
-
-    if (!user) {
-      return;
-    }
-    return await this.prisma.user.update({
-      where: { id: user_id },
-      data: {
-        availability,
-      },
-    });
-  }
+ 
+ 
 }

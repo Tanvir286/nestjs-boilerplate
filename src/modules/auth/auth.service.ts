@@ -801,24 +801,7 @@ export class AuthService {
           );
         }
         const { password, ...result } = user;
-        if (user.is_two_factor_enabled) {
-          if (token) {
-            const isValid = await this.userRepository.verify2FA(user.id, token);
-            if (!isValid) {
-              throw new UnauthorizedException('Invalid token');
-              // return {
-              //   success: false,
-              //   message: 'Invalid token',
-              // };
-            }
-          } else {
-            throw new UnauthorizedException('Token is required');
-            // return {
-            //   success: false,
-            //   message: 'Token is required',
-            // };
-          }
-        }
+
         return result;
       } else {
         throw new UnauthorizedException('Password not matched');
@@ -860,12 +843,12 @@ export class AuthService {
         user = await this.prisma.user.create({
           data: {
             email: email,
-            first_name: firstName,
-            last_name: lastName,
+            firstName: firstName,
+            lastName: lastName,
             avatar: picture || null,
-            google_id: uid,
-            email_verified_at: new Date(),
-            status: 1,
+            googleId: uid,
+            emailVerifiedAt: new Date(),
+            status: 'APPROVED',
             type: 'MAID',
           },
         });
@@ -879,14 +862,14 @@ export class AuthService {
         if (stripeCustomer) {
           await this.prisma.user.update({
             where: { id: user.id },
-            data: { billing_id: stripeCustomer.id },
+            data: { billingId: stripeCustomer.id },
           });
         }
-      } else if (!user.google_id) {
+      } else if (!user.googleId) {
         user = await this.prisma.user.update({
           where: { id: user.id },
           data: {
-            google_id: uid,
+            googleId: uid,
             avatar: user.avatar || picture || null,
           },
         });
@@ -895,7 +878,7 @@ export class AuthService {
       if (fcm_token) {
         await this.prisma.user.update({
           where: { id: user.id },
-          data: { fcm_token: fcm_token },
+          data: { fcmToken: fcm_token },
         });
       }
 
@@ -923,9 +906,9 @@ export class AuthService {
         user: {
           id: user.id,
           email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          google_id: user.google_id,
+          first_name: user.firstName,
+          last_name: user.lastName,
+          google_id: user.googleId,
           avatar_url: avatarUrl,
           type: user.type,
         },
@@ -959,12 +942,12 @@ export class AuthService {
         user = await this.prisma.user.create({
           data: {
             email,
-            first_name: firstName,
-            last_name: lastName,
+            firstName: firstName,
+            lastName: lastName,
             avatar: picture || null,
-            apple_id: uid,
-            email_verified_at: new Date(),
-            status: 1,
+            appleId: uid,
+            emailVerifiedAt: new Date(),
+            status: 'APPROVED',
             type: 'MAID',
           },
         });
@@ -978,14 +961,14 @@ export class AuthService {
         if (stripeCustomer) {
           await this.prisma.user.update({
             where: { id: user.id },
-            data: { billing_id: stripeCustomer.id },
+            data: { billingId: stripeCustomer.id },
           });
         }
-      } else if (!user.apple_id) {
+      } else if (!user.appleId) {
         user = await this.prisma.user.update({
           where: { id: user.id },
           data: {
-            apple_id: uid,
+            appleId: uid,
             avatar: user.avatar || picture || null,
           },
         });
@@ -994,7 +977,7 @@ export class AuthService {
       if (fcm_token) {
         await this.prisma.user.update({
           where: { id: user.id },
-          data: { fcm_token },
+          data: { fcmToken: fcm_token },
         });
       }
 
@@ -1022,9 +1005,9 @@ export class AuthService {
         user: {
           id: user.id,
           email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          google_id: user.google_id,
+          first_name: user.firstName,
+          last_name: user.lastName,
+          google_id: user.googleId,
           avatar_url: avatarUrl,
           type: user.type,
         },

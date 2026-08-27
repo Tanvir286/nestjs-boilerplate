@@ -54,10 +54,10 @@ export class UcodeRepository {
       }
       const data = await this.prisma.ucode.create({
         data: {
-          user_id: userId,
+          userId: userId,
           token: token,
           email: targetEmail,
-          expired_at: expired_at,
+          expiredAt: expired_at,
         },
       });
       return data.token;
@@ -106,9 +106,9 @@ export class UcodeRepository {
     }
 
     // Check if token is expired
-    if (existToken.expired_at) {
+    if (existToken.expiredAt) {
       const now = new Date();
-      if (existToken.expired_at < now) {
+      if (existToken.expiredAt < now) {
         // Token expired - delete it
         await this.prisma.ucode.delete({
           where: { id: existToken.id },
@@ -134,9 +134,9 @@ export class UcodeRepository {
       where: {
         token: token,
         email: email,
-        verified_at: null,
+        verifiedAt: null,
       },
-      data: { verified_at: new Date() },
+      data: { verifiedAt: new Date() },
     });
 
     if (updatedToken.count === 0) {
@@ -154,14 +154,14 @@ export class UcodeRepository {
         };
       }
 
-      if (existToken.verified_at) {
+      if (existToken.verifiedAt) {
         return {
           success: false,
           message: 'Token already verified',
         };
       }
 
-      if (existToken.expired_at && existToken.expired_at < new Date()) {
+      if (existToken.expiredAt && existToken.expiredAt < new Date()) {
         await this.prisma.ucode.delete({
           where: { id: existToken.id },
         });
@@ -186,7 +186,7 @@ export class UcodeRepository {
     });
 
     // Check if token was expired (updateMany doesn't check expiry)
-    if (verifiedToken?.expired_at && verifiedToken.expired_at < new Date()) {
+    if (verifiedToken?.expiredAt && verifiedToken.expiredAt < new Date()) {
       await this.prisma.ucode.delete({
         where: { id: verifiedToken.id },
       });
@@ -219,7 +219,7 @@ export class UcodeRepository {
       return false;
     }
 
-    if (existToken.verified_at) {
+    if (existToken.verifiedAt) {
       return true;
     }
 
@@ -244,10 +244,10 @@ export class UcodeRepository {
 
       const ucode = await this.prisma.ucode.create({
         data: {
-          user_id: params.userId,
+          userId: params.userId,
           email: params.email,
           token: token,
-          expired_at: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          expiredAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
           status: 1,
         },
       });

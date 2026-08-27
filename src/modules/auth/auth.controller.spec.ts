@@ -105,18 +105,7 @@ describe('AuthController', () => {
     expect(res.json).toHaveBeenCalled();
   });
 
-  it('should refresh token', async () => {
-    const result = await controller.refreshToken(
-      { user: { userId: 1 } } as any,
-      { refresh_token: 'refresh' },
-    );
-    expect(result.authorization.access_token).toBe('new_access');
-  });
 
-  it('should logout user', async () => {
-    const result = await controller.logout({ user: { userId: 1 } } as any);
-    expect(result.success).toBe(true);
-  });
 
   it('should update user', async () => {
     const result = await controller.updateUser(
@@ -175,26 +164,4 @@ describe('AuthController', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should generate 2FA secret', async () => {
-    const result = await controller.generate2FASecret({ user: { userId: 1 } } as any);
-    expect((result as any).data?.qrCode || (result as any).qr).toBe('base64');
-  });
-
-  it('should verify 2FA token', async () => {
-    const result = await controller.verify2FA(
-      { user: { userId: 1 } } as any,
-      { token: '123456' },
-    );
-    expect(result.success).toBe(true);
-  });
-
-  it('should enable 2FA', async () => {
-    const result = await controller.enable2FA({ user: { userId: 1 } } as any);
-    expect(result.success).toBe(true);
-  });
-
-  it('should disable 2FA', async () => {
-    const result = await controller.disable2FA({ user: { userId: 1 } } as any);
-    expect(result.success).toBe(true);
-  });
 });

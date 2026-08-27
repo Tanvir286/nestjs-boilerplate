@@ -30,20 +30,20 @@ export class StripeController {
       where: { id: transactionId },
     });
 
-    if (!transaction || transaction.status !== 'pending') return;
+    if (!transaction || transaction.status !== 'PENDING') return;
 
     await this.prisma.paymentTransaction.update({
       where: { id: transactionId },
       data: {
-        status: 'succeeded',
-        raw_status: rawStatus,
-        reference_number: referenceNumber ?? transaction.reference_number,
+        status: 'COMPLETED',
+        rawStatus: rawStatus,
+        referenceNumber: referenceNumber ?? transaction.referenceNumber,
       },
     });
 
-    if (transaction.user_id) {
+    if (transaction.userId) {
       await this.prisma.user.update({
-        where: { id: transaction.user_id },
+        where: { id: transaction.userId },
         data: {
           balance: {
             increment: paidAmount ?? Number(transaction.amount ?? 0),

@@ -1,7 +1,7 @@
 import { AbilityBuilder, ExtractSubjectType, PureAbility } from '@casl/ability';
 import { createPrismaAbility, Subjects, PrismaQuery } from '@casl/prisma';
 import { Injectable } from '@nestjs/common';
-import { User, Role } from '@prisma/client';
+import { User } from '@prisma/client';
 
 export enum Action {
   Manage = 'manage', // wildcard for any action
@@ -16,7 +16,6 @@ export enum Action {
 export type AppSubjects = Subjects<{
   Tenant: User;
   User: User;
-  Role: Role;
   Example: User;
 }>;
 
@@ -41,11 +40,13 @@ export class AbilityFactory {
       //   .permission_roles) {
       //   doCan(can, permissionRoles);
       // }
-      for (const permissionRoles of user.role_users) {
-        for (const permissionRole of permissionRoles.role.permission_roles) {
-          doCan(can, permissionRole);
-        }
-      }
+      
+      // TODO: Update this logic to use the new UserType enum or recreate the Role model.
+      // for (const permissionRoles of user.role_users) {
+      //   for (const permissionRole of permissionRoles.role.permission_roles) {
+      //     doCan(can, permissionRole);
+      //   }
+      // }
     }
 
     return build({

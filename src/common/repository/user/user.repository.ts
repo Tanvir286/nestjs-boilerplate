@@ -49,21 +49,8 @@ export class UserRepository {
         email: true,
         name: true,
         type: true,
-        active: true,
-        email_verified_at: true,
-        role_users: {
-          include: {
-            role: {
-              include: {
-                permission_roles: {
-                  include: {
-                    permission: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        status: true,
+        emailVerifiedAt: true,
       },
     });
     return user;
@@ -93,7 +80,7 @@ export class UserRepository {
 
       const user = await this.prisma.user.create({
         data: {
-          username: username,
+          name: username,
           email: email,
           password: password,
           type: UserType.ADMIN,
@@ -105,81 +92,11 @@ export class UserRepository {
     }
   }
 
-  /**
-   * Invite user under tenant
-   * @param param0
-   * @returns
-   */
-  async inviteUser({
-    name,
-    username,
-    email,
-    role_id,
-  }: {
-    name: string;
-    username: string;
-    email: string;
-    role_id: string;
-  }) {
-    try {
-      const user = await this.prisma.user.create({
-        data: {
-          name: name,
-          username: username,
-          email: email,
-        },
-      });
-      if (user) {
-        // attach role
-        await this.attachRole({
-          user_id: user.id,
-          role_id: role_id,
-        });
-        return user;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      throw error;
-    }
-  }
+ 
 
-  /**
-   * Attach a role to a user
-   * @param param0
-   * @returns
-   */
-  async attachRole({ user_id, role_id }: { user_id: string; role_id: string }) {
-    const role = await this.prisma.roleUser.create({
-      data: {
-        user_id: user_id,
-        role_id: role_id,
-      },
-    });
-    return role;
-  }
 
-  /**
-   * update user role
-   * @param param0
-   * @returns
-   */
-  async syncRole({ user_id, role_id }: { user_id: string; role_id: string }) {
-    const role = await this.prisma.roleUser.updateMany({
-      where: {
-        AND: [
-          {
-            user_id: user_id,
-          },
-        ],
-      },
-      data: {
-        role_id: role_id,
-      },
-    });
-    return role;
-  }
 
+ 
   /**
    * create user under a tenant
    * @param param0
@@ -258,14 +175,7 @@ export class UserRepository {
       });
 
       if (user) {
-        if (role_id) {
-          // attach role
-          await this.attachRole({
-            user_id: user.id,
-            role_id: role_id,
-          });
-        }
-
+        // role_id logic removed since roles are handled by the 'type' field
         return {
           success: true,
           message: 'User created successfully',
@@ -365,14 +275,7 @@ export class UserRepository {
       });
 
       if (user) {
-        if (role_id) {
-          // attach role
-          await this.attachRole({
-            user_id: user.id,
-            role_id: role_id,
-          });
-        }
-
+        // role_id logic removed since roles are handled by the 'type' field
         return {
           success: true,
           message: 'User updated successfully',
@@ -530,72 +433,14 @@ export class UserRepository {
     }
   }
 
-  // generate two factor secret
-  async generate2FASecret(user_id: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { id: user_id },
-    });
+  
 
-    if (!user) {
-      return {
-        success: false,
-        message: 'User not found',
-      };
-    }
+ 
 
-    const secret = speakeasy.generateSecret();
-    await this.prisma.user.update({
-      where: { id: user_id },
-      data: { two_factor_secret: secret.base32 },
-    });
+  
 
-    const otpAuthUrl = secret.otpauth_url;
-
-    const qrCode = await QRCode.toDataURL(otpAuthUrl);
-
-    return {
-      success: true,
-      message: '2FA secret generated successfully',
-      data: {
-        secret: secret.base32,
-        qrCode: qrCode,
-      },
-    };
-  }
-
-  // verify two factor
-  async verify2FA(user_id: string, token: string): Promise<boolean> {
-    const user = await this.prisma.user.findUnique({ where: { id: user_id } });
-
-    if (!user || !user.two_factor_secret) return false;
-
-    const isValid = speakeasy.totp.verify({
-      secret: user.two_factor_secret,
-      encoding: 'base32',
-      token,
-    });
-
-    return isValid;
-  }
-
-  // enable two factor
-  async enable2FA(user_id: string) {
-    const user = await this.prisma.user.update({
-      where: { id: user_id },
-      data: { is_two_factor_enabled: 1 },
-    });
-    return user;
-  }
-
-  // disable two factor
-  async disable2FA(user_id: string) {
-    const user = await this.prisma.user.update({
-      where: { id: user_id },
-      data: { is_two_factor_enabled: 0, two_factor_secret: null },
-    });
-    return user;
-  }
-
+  
+  
   // get user information
   async getUserInfo(user_id: string) {
     const user = await this.prisma.user.findUnique({
@@ -605,7 +450,11 @@ export class UserRepository {
         name: true,
         email: true,
         type: true,
-        location: true,
+        country: true,
+        state: true,
+        city: true,
+        zipCode: true,
+        address: true,
       },
     });
     return user;
