@@ -22,7 +22,9 @@ import appConfig from 'src/config/app.config';
 export class WithdrawController {
   constructor(private readonly withdrawService: WithdrawService) {}
 
-  // Stripe Connected Account
+  /*--------------------------------  
+       STRIPE CONNECTED ACCOUNT
+  ----------------------------------*/
   @UseGuards(JwtAuthGuard)
   @Post('create-connected-account')
   async createConnectedAccount(@Req() req: any) {
@@ -45,7 +47,10 @@ export class WithdrawController {
     }
   }
 
-  // Stripe Connect Onboarding Link
+  /*---------------------------------
+   STRIPE CONNECTED ACCOUNT ONBOARDING
+  ----------------------------------*/
+
   @Post('onboarding/:accountId')
   async getOnboardingLink(@Param('accountId') accountId: string) {
     try {
@@ -68,7 +73,9 @@ export class WithdrawController {
     }
   }
 
-  //Withdraw Request
+  /*--------------------------------  
+       Withdraw Request
+  ----------------------------------*/
   @UseGuards(JwtAuthGuard)
   @Post('request')
   async requestWithdraw(
@@ -89,7 +96,10 @@ export class WithdrawController {
     }
   }
 
-  //Check Connected Account Balance
+  
+  /*--------------------------------  
+    Check Connected Account Balance
+  ----------------------------------*/
   @UseGuards(JwtAuthGuard)
   @Get('balance')
   async checkBalance(@Req() req: any) {
@@ -102,7 +112,10 @@ export class WithdrawController {
     }
   }
 
-  //Withdraw History
+  
+  /*--------------------------------  
+       Withdraw History
+  ----------------------------------*/
   @UseGuards(JwtAuthGuard)
   @Get('history')
   async getWithdrawHistory(@Req() req: any) {
@@ -116,7 +129,9 @@ export class WithdrawController {
     }
   }
 
-  //Get Connected Account Info
+  /*--------------------------------  
+      Get Connected Account Info
+  ----------------------------------*/
   @UseGuards(JwtAuthGuard)
   @Get('account-info')
   async getAccountInfo(@Req() req: any) {
@@ -130,7 +145,9 @@ export class WithdrawController {
     }
   }
 
-  // Check onboarding connected account
+  /*-------------------------------------
+    Check onboarding connected account
+  --------------------------------------*/
   @UseGuards(JwtAuthGuard)
   @Get('onboarding-status')
   async getOnboardingStatus(@Req() req: any) {

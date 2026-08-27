@@ -37,9 +37,6 @@ export class MessageController {
         OPEN OR CREATE CONVERSATION                 
   --------------------------------------*/
   @Post('open-or-create-conversation')
-  @ApiOperation({
-    summary: 'Open an existing conversation or create a new one',
-  })
   async openOrCreateConversation(
     @Body() openOrCreateConversationDto: OpenOrCreateConversationDto,
     @Req() req: any,

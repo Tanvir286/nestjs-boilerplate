@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { DepositeService } from './deposite.service';
 
 import { UpdateDepositDto } from './dto/update-deposite.dto';
@@ -8,26 +18,23 @@ import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 @UseGuards(JwtAuthGuard)
 @Controller('deposite')
 export class DepositeController {
-
   constructor(private readonly depositeService: DepositeService) {}
 
-  // get my balance
+  /*--------------------------------  
+            GET MY BALANCE
+  ----------------------------------*/
   @Get('balance')
   async getBalance(@Req() req: any) {
     const userId = req.user.userId;
     return this.depositeService.getBalance(userId);
   }
 
-  // add deposite
+  /*--------------------------------  
+              ADD DEPOSITE
+  ----------------------------------*/
   @Post('add-balance')
-  async create(
-    @Body() createDepositDto: CreateDepositDto,
-    @Req() req: any
-  ) {
+  async create(@Body() createDepositDto: CreateDepositDto, @Req() req: any) {
     const userId = req.user.userId;
     return this.depositeService.create(createDepositDto, userId);
   }
-
-  // get all deposite
- 
 }

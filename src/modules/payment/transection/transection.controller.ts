@@ -10,7 +10,9 @@ export class TransectionController {
   constructor(private readonly transectionService: TransectionService) {}
 
   
-  // transection list
+  /*--------------------------------  
+            TRANSECTION LIST
+  ----------------------------------*/
   @UseGuards(JwtAuthGuard)
   @Get('all-list')
   async findAll(

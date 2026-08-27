@@ -8,18 +8,20 @@ export class TransectionService {
     private readonly prisma: PrismaService
   ) {}
 
-  // transection list
+  /*--------------------------------  
+            TRANSECTION LIST
+  ----------------------------------*/
   async findAll(
     userId: string
   ) {
   
     const transactions = await this.prisma.paymentTransaction.findMany({
       where: {
-        user_id: userId,
-        type: 'deposit',
+        userId: userId,
+        type: 'TOPUP',
       },
       orderBy: {
-        created_at: 'desc',
+        createdAt: 'desc',
       },
     });
 
@@ -28,7 +30,7 @@ export class TransectionService {
       amount: t.amount,
       type: t.type,
       status: t.status,
-      createdAt: t.created_at,
+      createdAt: t.createdAt,
     }));
 
     return {

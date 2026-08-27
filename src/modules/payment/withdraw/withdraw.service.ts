@@ -14,7 +14,9 @@ import { StripePayment } from 'src/common/lib/Payment/stripe/StripePayment';
 export class WithdrawService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Stripe Connected Account
+  /*--------------------------------  
+       STRIPE CONNECTED ACCOUNT
+  ----------------------------------*/
   async createConnectedAccount(
     userId: string,
     email: string,
@@ -31,7 +33,7 @@ export class WithdrawService {
       throw new NotFoundException('User not found');
     }
 
-    if (user.stripe_connect_id) {
+    if (user.stripeConnectId) {
       throw new BadRequestException('You already have a payout account');
     }
 
@@ -41,7 +43,7 @@ export class WithdrawService {
       await this.prisma.user.update({
         where: { id: userId },
         data: {
-          stripe_connect_id: connectedAccount.id,
+          stripeConnectId: connectedAccount.id,
         },
       });
 
@@ -71,7 +73,10 @@ export class WithdrawService {
     }
   }
 
-  // Stripe Connect Onboarding Link
+ 
+  /*---------------------------------
+   STRIPE CONNECTED ACCOUNT ONBOARDING
+  ----------------------------------*/ 
   async createOnboardingLink(accountId: string): Promise<{
     success: boolean;
     message: string;
@@ -96,7 +101,10 @@ export class WithdrawService {
     }
   }
 
-  //Withdraw Request
+
+  /*--------------------------------  
+       Withdraw Request
+  ----------------------------------*/
   async processWithdraw(
     userId: string,
     withdrawDto: CreateWithdrawDto,
@@ -113,7 +121,7 @@ export class WithdrawService {
     }
 
     // Check if user has a connected account
-    if (!user.stripe_connect_id) {
+    if (!user.stripeConnectId) {
       throw new BadRequestException('Please set up a payout account first');
     }
 
@@ -137,7 +145,7 @@ export class WithdrawService {
     try {
       // Create Stripe Transfer (from platform to connected account)
       const transfer = await StripePayment.createTransfer(
-        user.stripe_connect_id,
+        user.stripeConnectId,
         amount,
         currency,
       );
@@ -155,16 +163,16 @@ export class WithdrawService {
       // Save transaction record
       await this.prisma.paymentTransaction.create({
         data: {
-          user_id: userId,
-          type: 'withdraw',
-          withdraw_via: 'stripe',
+          userId: userId,
+          type: 'WITHDRAWAL',
+          withdrawVia: 'stripe',
           provider: 'stripe',
-          reference_number: transfer.id,
-          status: 'completed',
+          referenceNumber: transfer.id,
+          status: 'COMPLETED',
           amount: amount,
           currency: currency,
-          paid_amount: amount,
-          paid_currency: currency,
+          paidAmount: amount,
+          paidCurrency: currency,
         },
       });
 
@@ -183,11 +191,11 @@ export class WithdrawService {
 
       await this.prisma.paymentTransaction.create({
         data: {
-          user_id: userId,
-          type: 'withdraw',
-          withdraw_via: 'stripe',
+          userId: userId,
+          type: 'WITHDRAWAL',
+          withdrawVia: 'stripe',
           provider: 'stripe',
-          status: 'failed',
+          status: 'FAILED',
           amount: amount,
           currency: currency,
         },
@@ -202,19 +210,22 @@ export class WithdrawService {
     }
   }
 
-  //Check Connected Account Balance
+
+  /*--------------------------------  
+    Check Connected Account Balance
+  ----------------------------------*/
   async checkAccountBalance(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { stripe_connect_id: true },
+      select: { stripeConnectId: true },
     });
 
-    if (!user || !user.stripe_connect_id) {
+    if (!user || !user.stripeConnectId) {
       throw new BadRequestException('No connected account found');
     }
 
     try {
-      const balance = await StripePayment.checkBalance(user.stripe_connect_id);
+      const balance = await StripePayment.checkBalance(user.stripeConnectId);
 
       const availableAmount = balance.available?.[0]?.amount || 0;
       const pendingAmount = balance.pending?.[0]?.amount || 0;
@@ -223,7 +234,7 @@ export class WithdrawService {
       return {
         success: true,
         data: {
-          stripe_id: user.stripe_connect_id,
+          stripe_id: user.stripeConnectId,
           available: {
             amount: availableAmount / 100,
             amount_in_cents: availableAmount,
@@ -251,15 +262,17 @@ export class WithdrawService {
     }
   }
 
-  //Withdraw History
+  /*--------------------------------  
+       Withdraw History
+  ----------------------------------*/
   async getWithdrawHistory(userId: string) {
     const transactions = await this.prisma.paymentTransaction.findMany({
       where: {
-        user_id: userId,
-        type: 'withdraw',
+        userId: userId,
+        type: 'WITHDRAWAL',
       },
       orderBy: {
-        created_at: 'desc',
+        createdAt: 'desc',
       },
     });
 
@@ -269,12 +282,15 @@ export class WithdrawService {
     };
   }
 
-  //Get Connected Account Info
+
+  /*--------------------------------  
+      Get Connected Account Info
+  ----------------------------------*/
   async getConnectedAccountInfo(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
-        stripe_connect_id: true,
+        stripeConnectId: true,
         email: true,
         name: true,
       },
@@ -288,26 +304,29 @@ export class WithdrawService {
       success: true,
       message: 'Connected account info retrieved successfully',
       data: {
-        hasConnectedAccount: !!user.stripe_connect_id,
-        accountId: user.stripe_connect_id,
+        hasConnectedAccount: !!user.stripeConnectId,
+        accountId: user.stripeConnectId,
         email: user.email,
         name: user.name,
       },
     };
   }
 
-  // Check if onboarding completed for connected account
+  /*-------------------------------------
+    Check onboarding connected account
+  --------------------------------------*/
+
   async isOnboardingComplete(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { stripe_connect_id: true },
+      select: { stripeConnectId: true },
     });
 
-    if (!user || !user.stripe_connect_id) {
+    if (!user || !user.stripeConnectId) {
       return { success: true, onboarded: false };
     }
     try {
-      const account = await StripePayment.getAccount(user.stripe_connect_id);
+      const account = await StripePayment.getAccount(user.stripeConnectId);
       const onboarded = !!( account.charges_enabled || (account as any).payouts_enabled || account.details_submitted );
       return { success: true, onboarded };
     } catch (error: any) {
