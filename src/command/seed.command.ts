@@ -61,7 +61,7 @@ export class SeedCommand extends CommandRunner {
           lastName: 'One',
           email: 'user1@gmail.com',
           password,
-          type: UserType.HOMEOWNER,
+          type: UserType.USER,
           city: 'Dhaka',
           bio: 'First test user',
           emailVerifiedAt: new Date(),
@@ -72,14 +72,14 @@ export class SeedCommand extends CommandRunner {
           lastName: 'Two',
           email: 'user2@gmail.com',
           password,
-          type: UserType.HOMEOWNER,
+          type: UserType.USER,
           city: 'Dhaka',
           bio: 'Second test user',
           emailVerifiedAt: new Date(),
         },
       ];
 
-      // Upsert: আগের ডেটা থাকলে রিপ্লেস/আপডেট হবে, না থাকলে নতুন এড হবে
+      // Upsert: old
       for (const user of usersData) {
         await this.prisma.user.upsert({
           where: { email: user.email },

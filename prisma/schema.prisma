@@ -13,6 +13,7 @@ datasource db {
 
 enum UserType {
   ADMIN
+  USER
   HOMEOWNER
   MAID
   CLEANER
@@ -36,7 +37,7 @@ model User {
   bio             String?     @db.Text
   phoneNumber     String?     @db.VarChar(50)
   gender          String?     @db.VarChar(20)
-  type            UserType    @default(CLEANER)
+  type            UserType    @default(USER)
   status          UserStatus  @default(APPROVED)
   
   // Location

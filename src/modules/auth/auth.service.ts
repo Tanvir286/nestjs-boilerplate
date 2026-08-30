@@ -948,7 +948,7 @@ export class AuthService {
             appleId: uid,
             emailVerifiedAt: new Date(),
             status: 'APPROVED',
-            type: 'MAID',
+            type: 'USER',
           },
         });
 
