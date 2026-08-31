@@ -22,8 +22,8 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage, memoryStorage } from 'multer';
 import appConfig from 'src/config/app.config';
-import { log } from 'node:console';
-import { PaginationDto } from 'src/common/pagination';
+import { PaginationDto } from 'src/common/pagination/pagination.dto';
+
 
 @ApiBearerAuth()
 @ApiTags('Message')
