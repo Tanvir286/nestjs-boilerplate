@@ -100,35 +100,62 @@ export class MessageController {
   
 
   /*------------------------------------        
-        Unread Messages Count                 
+        Unread Messages Count (Unseen)                 
   --------------------------------------*/
 
   @Get('unread-messages-count/:conversationId')
   async unreadMessagesCount(
     @Param('conversationId') conversationId: string,
+    @Req() req: any,
+  ) {
+    const user = req.user.userId;
+    return this.messageService.unreadMessagesCount(conversationId, user);
+  }
+
+  /*-------------------------------------
+         Unread Messages List (Unseen)
+  --------------------------------------*/
+
+  @Get('unread-messages-list/:conversationId')
+  async unreadMessagesList(
+    @Param('conversationId') conversationId: string,
     @Query() paginationdto: PaginationDto,
     @Req() req: any,
   ) {
     const user = req.user.userId;
-   return this.messageService.findAll(conversationId, user, paginationdto);
+    return this.messageService.unreadMessagesList(
+      conversationId,
+      user,
+      paginationdto,
+    );
   }
- 
 
   /*------------------------------------        
-       Unread Messages List                 
+       Read Messages List (Seen)                 
   --------------------------------------*/
 
-  @Post('mark-as-read/:messageId')
-  async markAsRead(
-    @Param('messageId') messageId: string,
+  @Get('read-messages-list/:conversationId')
+  async readMessagesList(
+    @Param('conversationId') conversationId: string,
+    @Query() paginationdto: PaginationDto,
     @Req() req: any,
   ) {
     const user = req.user.userId;
-    return this.messageService.markAsRead(user, messageId);
+    return this.messageService.readMessagesList(
+      conversationId,
+      user,
+      paginationdto,
+    );
   }
 
-  
-  
+  /*------------------------------------        
+       Mark as Read (Seen)                 
+  --------------------------------------*/
 
- 
+  @Post('mark-as-read/:messageId')
+  async markAsRead(@Param('messageId') messageId: string, @Req() req: any) {
+    const user = req.user.userId;
+    return this.messageService.markAsRead(user, messageId);
+  }
 }
+

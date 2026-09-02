@@ -492,34 +492,230 @@ export class MessageService {
 
 
   /*------------------------------------        
-     Unread Messages Count                 
+     Unread Messages Count (Unseen)                 
   --------------------------------------*/
 
   async unreadMessagesCount(conversationId: string, userId: string) {
-   
+    const participant = await this.prisma.participant.findFirst({
+      where: { conversationId, userId },
+    });
+
+    if (!participant) {
+      throw new UnauthorizedException(
+        'You are not a participant of this conversation.',
+      );
+    }
+
+    const unreadMessagesCount = await this.prisma.message.count({
+      where: {
+        conversationId,
+        senderId: { not: userId },
+        status: { not: MessageStatus.READ },
+      },
+    });
+
+    return {
+      message: 'Unread messages count retrieved successfully',
+      success: true,
+      data: unreadMessagesCount,
+    };
   }
 
-  
   /*------------------------------------        
-     Unread Messages List                 
+     Unread Messages List (Unseen)                 
   --------------------------------------*/
 
-  async unreadMessagesList(conversationId: string, userId: string) {
-   
+  async unreadMessagesList(
+    conversationId: string,
+    userId: string,
+    paginationdto: PaginationDto,
+  ) {
+    const participant = await this.prisma.participant.findFirst({
+      where: { conversationId, userId },
+    });
+
+    if (!participant) {
+      throw new UnauthorizedException(
+        'You are not a participant of this conversation.',
+      );
+    }
+
+    const { page = 1, perPage = 10 } = paginationdto || {};
+    const skip = (page - 1) * perPage;
+    const take = perPage;
+
+    const whereClause = {
+      conversationId,
+      senderId: { not: userId },
+      status: { not: MessageStatus.READ },
+    };
+
+    const [totalMessages, messages] = await this.prisma.$transaction([
+      this.prisma.message.count({ where: whereClause }),
+      this.prisma.message.findMany({
+        where: whereClause,
+        include: {
+          sender: {
+            select: { id: true, name: true, email: true, avatar: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+    ]);
+
+    const formattedMessages = messages.map((msg) => ({
+      id: msg.id,
+      text: msg.text,
+      status: msg.status,
+      attachments: msg.attachments,
+      attachments_url: (msg.attachments || []).map((f) =>
+        TanvirStorage.url(`${appConfig().storageUrl.attachment}/${f}`),
+      ),
+      createdAt: msg.createdAt,
+      sender: {
+        id: msg.sender.id,
+        name: msg.sender.name,
+        avatar_url: msg.sender.avatar
+          ? TanvirStorage.url(
+              `${appConfig().storageUrl.avatar}/${msg.sender.avatar}`,
+            )
+          : null,
+      },
+    }));
+
+    return {
+      message: 'Unread messages retrieved successfully',
+      success: true,
+      ...paginateResponse(formattedMessages, totalMessages, page, perPage),
+    };
   }
- 
 
   /*------------------------------------        
-     Mark as Read                 
+     Read Messages List (Seen)                 
+  --------------------------------------*/
+
+  async readMessagesList(
+    conversationId: string,
+    userId: string,
+    paginationdto: PaginationDto,
+  ) {
+    const participant = await this.prisma.participant.findFirst({
+      where: { conversationId, userId },
+    });
+
+    if (!participant) {
+      throw new UnauthorizedException(
+        'You are not a participant of this conversation.',
+      );
+    }
+
+    const { page = 1, perPage = 10 } = paginationdto || {};
+    const skip = (page - 1) * perPage;
+    const take = perPage;
+
+    const whereClause = {
+      conversationId,
+      status: MessageStatus.READ,
+    };
+
+    const [totalMessages, messages] = await this.prisma.$transaction([
+      this.prisma.message.count({ where: whereClause }),
+      this.prisma.message.findMany({
+        where: whereClause,
+        include: {
+          sender: {
+            select: { id: true, name: true, email: true, avatar: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+    ]);
+
+    const formattedMessages = messages.map((msg) => ({
+      id: msg.id,
+      text: msg.text,
+      status: msg.status,
+      attachments: msg.attachments,
+      attachments_url: (msg.attachments || []).map((f) =>
+        TanvirStorage.url(`${appConfig().storageUrl.attachment}/${f}`),
+      ),
+      createdAt: msg.createdAt,
+      sender: {
+        id: msg.sender.id,
+        name: msg.sender.name,
+        avatar_url: msg.sender.avatar
+          ? TanvirStorage.url(
+              `${appConfig().storageUrl.avatar}/${msg.sender.avatar}`,
+            )
+          : null,
+      },
+    }));
+
+    return {
+      message: 'Read messages retrieved successfully',
+      success: true,
+      ...paginateResponse(formattedMessages, totalMessages, page, perPage),
+    };
+  }
+
+  /*------------------------------------        
+     Mark as Read (Seen)                 
   --------------------------------------*/
 
   async markAsRead(userId: string, messageId: string) {
-    
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    const participant = await this.prisma.participant.findFirst({
+      where: {
+        conversationId: message.conversationId,
+        userId,
+      },
+    });
+
+    if (!participant) {
+      throw new UnauthorizedException(
+        'You are not a participant of this conversation.',
+      );
+    }
+
+    const updatedMessage = await this.prisma.message.update({
+      where: { id: messageId },
+      data: { status: MessageStatus.READ },
+    });
+
+    // Update participant's lastReadAt
+    await this.prisma.participant.updateMany({
+      where: {
+        conversationId: message.conversationId,
+        userId,
+      },
+      data: { lastReadAt: new Date() },
+    });
+
+    // Emit real-time event to the conversation room
+    this.messageGateway.server
+      .to(message.conversationId)
+      .emit('messageStatusUpdated', {
+        message_id: messageId,
+        conversation_id: message.conversationId,
+        status: MessageStatus.READ,
+        readBy: userId,
+      });
+
     return {
       message: 'Message marked as read successfully',
       success: true,
+      data: updatedMessage,
     };
   }
- 
-
 }
