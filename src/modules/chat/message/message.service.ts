@@ -718,4 +718,59 @@ export class MessageService {
       data: updatedMessage,
     };
   }
+  
+
+  /*------------------------------------        
+       Mark as Delivered (Sent)                 
+  --------------------------------------*/
+
+  async markAsDelivered(userId: string, messageId: string) {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    const participant = await this.prisma.participant.findFirst({
+      where: {
+        conversationId: message.conversationId,
+        userId,
+      },
+    });
+
+    if (!participant) {
+      throw new UnauthorizedException(
+        'You are not a participant of this conversation.',
+      );
+    }
+
+    const updatedMessage = await this.prisma.message.update({
+      where: { id: messageId },
+      data: { status: MessageStatus.DELIVERED },
+    });
+
+    this.messageGateway.server
+      .to(message.conversationId)
+      .emit('messageStatusUpdated', {
+        message_id: messageId,
+        conversation_id: message.conversationId,
+        status: MessageStatus.DELIVERED,
+        deliveredBy: userId,
+      });
+
+    return {
+      message: 'Message marked as delivered successfully',
+      success: true,
+      data: updatedMessage,
+    };
+  }
+
+  /*------------------------------------        
+       Mark all messages as delivered                 
+  --------------------------------------*/
+
+  
+
 }

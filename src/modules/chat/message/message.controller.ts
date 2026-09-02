@@ -157,5 +157,19 @@ export class MessageController {
     const user = req.user.userId;
     return this.messageService.markAsRead(user, messageId);
   }
+
+  /*------------------------------------=      
+       Mark as Delivered (Sent)                 
+  --------------------------------------*/
+
+  @Post('mark-as-delivered/:messageId')
+  async markAsDelivered(@Param('messageId') messageId: string, @Req() req: any) {
+    const user = req.user.userId;
+    return this.messageService.markAsDelivered(user, messageId);
+  }
+
+
+  
+
 }
 
