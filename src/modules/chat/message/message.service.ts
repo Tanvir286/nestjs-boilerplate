@@ -11,9 +11,9 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { TanvirStorage } from '../../../common/lib/Disk/TanvirStorage';
 import { MessageGateway } from './message.gateway';
 import { StringHelper } from 'src/common/helper/string.helper';
+import { paginateResponse, PaginationDto } from 'src/common/pagination';
 import { ChatRepository } from '../../../common/repository/chat/chat.repository';
 import { OpenOrCreateConversationDto } from './dto/open-or-create-conversation.dto';
-import { PaginationDto } from 'src/common/pagination/pagination.dto';
 
 // Temporary enum until Prisma generates it
 enum MessageStatus {
@@ -320,7 +320,7 @@ export class MessageService {
     userId: string,
     paginationdto: PaginationDto,
   ) {
-    const { page, perPage } = paginationdto;
+    const { page = 1, perPage = 10 } = paginationdto || {};
     const skip = (page - 1) * perPage;
     const take = perPage;
     const whereClause = { conversationId };
