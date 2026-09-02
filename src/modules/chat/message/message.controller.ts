@@ -99,5 +99,36 @@ export class MessageController {
   }
   
 
+  /*------------------------------------        
+        Unread Messages Count                 
+  --------------------------------------*/
+
+  @Get('unread-messages-count/:conversationId')
+  async unreadMessagesCount(
+    @Param('conversationId') conversationId: string,
+    @Query() paginationdto: PaginationDto,
+    @Req() req: any,
+  ) {
+    const user = req.user.userId;
+   return this.messageService.findAll(conversationId, user, paginationdto);
+  }
+ 
+
+  /*------------------------------------        
+       Unread Messages List                 
+  --------------------------------------*/
+
+  @Post('mark-as-read/:messageId')
+  async markAsRead(
+    @Param('messageId') messageId: string,
+    @Req() req: any,
+  ) {
+    const user = req.user.userId;
+    return this.messageService.markAsRead(user, messageId);
+  }
+
+  
+  
+
  
 }

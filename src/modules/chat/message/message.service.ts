@@ -490,7 +490,36 @@ export class MessageService {
     };
   }
 
+
+  /*------------------------------------        
+     Unread Messages Count                 
+  --------------------------------------*/
+
+  async unreadMessagesCount(conversationId: string, userId: string) {
+   
+  }
+
+  
+  /*------------------------------------        
+     Unread Messages List                 
+  --------------------------------------*/
+
+  async unreadMessagesList(conversationId: string, userId: string) {
+   
+  }
  
 
+  /*------------------------------------        
+     Mark as Read                 
+  --------------------------------------*/
+
+  async markAsRead(userId: string, messageId: string) {
+    
+    return {
+      message: 'Message marked as read successfully',
+      success: true,
+    };
+  }
+ 
 
 }
