@@ -119,7 +119,7 @@ export class MessageService {
   }
 
 
-   /*------------------------------------        
+  /*------------------------------------        
         OPEN OR CREATE CONVERSATION                 
   --------------------------------------*/
 
@@ -194,8 +194,6 @@ export class MessageService {
       },
     };
   }
-
-
   /*------------------------------------        
            SEND MESSAGE                 
   --------------------------------------*/
@@ -309,7 +307,6 @@ export class MessageService {
       data: formatted,
     };
   }
- 
  
   /*------------------------------------        
      GET ALL MESSAGE FOR A CONVERSATION                 
@@ -489,8 +486,6 @@ export class MessageService {
       success: true,
     };
   }
-
-
   /*------------------------------------        
      Unread Messages Count (Unseen)                 
   --------------------------------------*/
@@ -720,9 +715,9 @@ export class MessageService {
   }
   
 
-  /*------------------------------------        
+/*------------------------------------        
        Mark as Delivered (Sent)                 
-  --------------------------------------*/
+--------------------------------------*/
 
   async markAsDelivered(userId: string, messageId: string) {
     const message = await this.prisma.message.findUnique({
@@ -768,8 +763,9 @@ export class MessageService {
   }
 
   /*------------------------------------        
-       Mark all messages as delivered                 
+            MARK AS UNREAD                 
   --------------------------------------*/
+
 
   
 
