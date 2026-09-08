@@ -19,11 +19,14 @@ import { MessageGateway } from './message.gateway';
 import { Request } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+  FilesInterceptor,
+} from '@nestjs/platform-express';
 import { diskStorage, memoryStorage } from 'multer';
 import appConfig from 'src/config/app.config';
 import { PaginationDto } from 'src/common/pagination/pagination.dto';
-
 
 @ApiBearerAuth()
 @ApiTags('Message')
@@ -31,7 +34,6 @@ import { PaginationDto } from 'src/common/pagination/pagination.dto';
 @Controller('chat/message')
 export class MessageController {
   constructor(private readonly messageService: MessageService) {}
-
 
   /*------------------------------------        
         OPEN OR CREATE CONVERSATION                 
@@ -56,7 +58,7 @@ export class MessageController {
     FilesInterceptor('attachments', 10, {
       storage: memoryStorage(),
       limits: {
-        fileSize: 50 * 1024 * 1024, 
+        fileSize: 50 * 1024 * 1024,
       },
     }),
   )
@@ -70,7 +72,6 @@ export class MessageController {
     return this.messageService.create_message(createMessageDto, user, files);
   }
 
-  
   /*------------------------------------        
      GET ALL MESSAGE FOR A CONVERSATION                 
   --------------------------------------*/
@@ -82,22 +83,18 @@ export class MessageController {
     @Req() req: any,
   ) {
     const user = req.user.userId;
-   return this.messageService.findAll(conversationId, user, paginationdto);
+    return this.messageService.findAll(conversationId, user, paginationdto);
   }
- 
+
   /*------------------------------------        
      DELETE MESSAGE                 
   --------------------------------------*/
 
   @Delete('delete-message/:messageId')
-  async deleteMessage(
-    @Param('messageId') messageId: string,
-    @Req() req: any,
-  ) {
+  async deleteMessage(@Param('messageId') messageId: string, @Req() req: any) {
     const user = req.user.userId;
     return this.messageService.deleteMessage(user, messageId);
   }
-  
 
   /*------------------------------------        
         Unread Messages Count (Unseen)                 
@@ -163,14 +160,25 @@ export class MessageController {
   --------------------------------------*/
 
   @Post('mark-as-delivered/:messageId')
-  async markAsDelivered(@Param('messageId') messageId: string, @Req() req: any) {
+  async markAsDelivered(
+    @Param('messageId') messageId: string,
+    @Req() req: any,
+  ) {
     const user = req.user.userId;
+    console.log(`user`)
     return this.messageService.markAsDelivered(user, messageId);
   }
 
-  
+  /*------------------------------------        
+       Mark as Unread                 
+  --------------------------------------*/
 
-  
+  @Post('mark-as-unread/:messageId')
+  async markAsUnread(@Param('messageId') messageId: string, @Req() req: any) {
+    const user = req.user.userId;
+    return this.messageService.markAsUnread(user, messageId);
+  }
+
+
 
 }
-

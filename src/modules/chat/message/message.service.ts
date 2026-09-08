@@ -118,12 +118,11 @@ export class MessageService {
     };
   }
 
-
   /*------------------------------------        
         OPEN OR CREATE CONVERSATION                 
   --------------------------------------*/
 
-   async openOrCreateConversation(
+  async openOrCreateConversation(
     openOrCreateConversationDto: OpenOrCreateConversationDto,
     sender: string,
   ) {
@@ -169,7 +168,9 @@ export class MessageService {
       return {
         message: 'Conversation retrieved successfully',
         success: true,
-        conversation: await this.buildConversationResponse(existingConversation.id),
+        conversation: await this.buildConversationResponse(
+          existingConversation.id,
+        ),
       };
     }
 
@@ -197,7 +198,7 @@ export class MessageService {
   /*------------------------------------        
            SEND MESSAGE                 
   --------------------------------------*/
-  
+
   async create_message(
     createMessageDto: CreateMessageDto,
     sender: string,
@@ -307,11 +308,11 @@ export class MessageService {
       data: formatted,
     };
   }
- 
+
   /*------------------------------------        
      GET ALL MESSAGE FOR A CONVERSATION                 
   --------------------------------------*/
- 
+
   async findAll(
     conversationId: string,
     userId: string,
@@ -368,7 +369,7 @@ export class MessageService {
     const oppositeUserId = receiverParticipant?.userId;
 
     const avgreview = null;
-    
+
     const formattedReceiverWithReview = receiverParticipant
       ? {
           id: receiverParticipant.user.id,
@@ -427,7 +428,7 @@ export class MessageService {
               `${appConfig().storageUrl.avatar}/${msg.sender.avatar}`,
             )
           : null,
-      }
+      },
     }));
 
     const paginationResult = paginateResponse(
@@ -448,7 +449,7 @@ export class MessageService {
   /*------------------------------------        
      DELETE MESSAGE                 
   --------------------------------------*/
-  
+
   async deleteMessage(userId: string, messageId: string) {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
@@ -516,9 +517,9 @@ export class MessageService {
     };
   }
 
-  /*------------------------------------        
+/*------------------------------------        
      Unread Messages List (Unseen)                 
-  --------------------------------------*/
+--------------------------------------*/
 
   async unreadMessagesList(
     conversationId: string,
@@ -587,9 +588,9 @@ export class MessageService {
     };
   }
 
-  /*------------------------------------        
+/*------------------------------------        
      Read Messages List (Seen)                 
-  --------------------------------------*/
+--------------------------------------*/
 
   async readMessagesList(
     conversationId: string,
@@ -657,9 +658,9 @@ export class MessageService {
     };
   }
 
-  /*------------------------------------        
+/*------------------------------------        
      Mark as Read (Seen)                 
-  --------------------------------------*/
+--------------------------------------*/
 
   async markAsRead(userId: string, messageId: string) {
     const message = await this.prisma.message.findUnique({
@@ -713,8 +714,9 @@ export class MessageService {
       data: updatedMessage,
     };
   }
-  
 
+  
+  
 /*------------------------------------        
        Mark as Delivered (Sent)                 
 --------------------------------------*/
@@ -762,11 +764,18 @@ export class MessageService {
     };
   }
 
-  /*------------------------------------        
+/*------------------------------------        
             MARK AS UNREAD                 
-  --------------------------------------*/
+--------------------------------------*/
 
+async markAsUnread(userId: string, messageId: string) {
+ 
 
   
+}
+
+
+
+
 
 }
