@@ -3,11 +3,13 @@ import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
 export class TransactionRepository {
+ 
   constructor(private readonly prisma: PrismaService) {}
-  /**
-   * Create transaction
-   * @returns
-   */
+  
+  /*------------------------------------------
+              Create Transaction
+  -------------------------------------------*/
+
   async createTransaction({
     booking_id,
     amount,
@@ -44,10 +46,10 @@ export class TransactionRepository {
     });
   }
 
-  /**
-   * Update transaction
-   * @returns
-   */
+  /*------------------------------------------
+              Update Transaction
+  -------------------------------------------*/
+ 
   async updateTransaction({
     reference_number,
     status = 'pending',

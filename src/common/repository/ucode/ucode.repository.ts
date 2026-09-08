@@ -12,6 +12,10 @@ export class UcodeRepository {
     private readonly userRepository: UserRepository,
   ) {}
 
+  /*---------------------------------------------------------
+                        Create Token
+  ---------------------------------------------------------*/
+ 
   /**
    * create ucode token
    * @param userId - user id
@@ -20,6 +24,7 @@ export class UcodeRepository {
    * @param time - expiry time in minutes (default 5 minutes)
    * @returns
    */
+
   async createToken({
     userId,
     isOtp = false,
@@ -66,6 +71,10 @@ export class UcodeRepository {
     }
   }
 
+  /*----------------------------------------------------------
+                        Validate Token
+  ----------------------------------------------------------*/
+
   /**
    * validate ucode token
    * @param email - email address
@@ -73,6 +82,7 @@ export class UcodeRepository {
    * @param forEmailChange - if true, skip user existence check
    * @returns true if valid, false if invalid or expired
    */
+
   async validateToken({
     email,
     token,
@@ -124,6 +134,7 @@ export class UcodeRepository {
 
     return true;
   }
+
 
   /**
    * verify ucode token

@@ -53,7 +53,7 @@ export type NotificationType =
 
 export class NotificationRepository {
   
-  // create notification
+  // create notification wit
   static async createNotification(payload: {
     sender_id?: string | null;
     receiver_id: string;
@@ -102,11 +102,11 @@ export class NotificationRepository {
   ) {
     if (!admin.apps.length) {
       console.warn(
-        '⚠️ Firebase app is not initialized. Push notification skipped.',
+        '⚠️Firebase app is not initialized. Push notification skipped.',
       );
       return;
     }
-
+  
     try {
       const user = await prisma.user.findUnique({
         where: { id: receiverId },
@@ -167,5 +167,5 @@ export class NotificationRepository {
     return titles[type] || 'New Notification';
   }
 
-  
+   
 }
