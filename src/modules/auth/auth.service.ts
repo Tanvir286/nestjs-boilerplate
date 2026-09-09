@@ -33,7 +33,6 @@ export class AuthService {
     @InjectRedis() private readonly redis: Redis,
   ) {}
 
-
   private resolveAvatarUrl(avatar: string | null | undefined) {
     if (!avatar) {
       return null;
@@ -46,8 +45,7 @@ export class AuthService {
     return TanvirStorage.url(appConfig().storageUrl.avatar + '/' + avatar);
   }
 
-
-/*------------------------------------
+  /*------------------------------------
                USER DETAILS              
 ---------------------------------------*/
 
@@ -97,7 +95,7 @@ export class AuthService {
     }
   }
 
-/*------------------------------------
+  /*------------------------------------
            USER REGISTER               
 ---------------------------------------*/
 
@@ -120,7 +118,7 @@ export class AuthService {
   }) {
     try {
       // Check if email already exist
-      const userEmailExist = await this.userRepository.exist({
+      const userEmailExist = await this.userRepository.findUserByField({
         field: 'email',
         value: String(email),
       });
@@ -201,13 +199,13 @@ export class AuthService {
     }
   }
 
-/*------------------------------------
+  /*------------------------------------
                VERIFY EMAIL               
 ---------------------------------------*/
 
   async verifyEmail({ email, token }) {
     try {
-      const user = await this.userRepository.exist({
+      const user = await this.userRepository.findUserByField({
         field: 'email',
         value: email,
       });
@@ -260,7 +258,7 @@ export class AuthService {
     }
   }
 
-/*------------------------------------
+  /*------------------------------------
       Resend Email  Verification               
 ---------------------------------------*/
 
@@ -300,7 +298,7 @@ export class AuthService {
     }
   }
 
-/*------------------------------------
+  /*------------------------------------
                   USER LOGIN               
 ---------------------------------------*/
 
@@ -360,7 +358,7 @@ export class AuthService {
     }
   }
 
-/*------------------------------------
+  /*------------------------------------
                USER UPDATE               
 ---------------------------------------*/
   async updateUser(
@@ -442,13 +440,13 @@ export class AuthService {
     }
   }
 
-/*------------------------------------
+  /*------------------------------------
                FORGOT PASSWORD               
 ---------------------------------------*/
 
   async forgotPassword(email) {
     try {
-      const user = await this.userRepository.exist({
+      const user = await this.userRepository.findUserByField({
         field: 'email',
         value: email,
       });
@@ -491,13 +489,13 @@ export class AuthService {
     }
   }
 
-/*------------------------------------
+  /*------------------------------------
          Reset PASSWORD                
 ---------------------------------------*/
 
   async resetPassword({ email, token, password }) {
     try {
-      const user = await this.userRepository.exist({
+      const user = await this.userRepository.findUserByField({
         field: 'email',
         value: email,
       });
@@ -544,7 +542,7 @@ export class AuthService {
     }
   }
 
-/*------------------------------------        
+  /*------------------------------------        
                RESEND TOKEN              
 ---------------------------------------*/
 
@@ -585,13 +583,13 @@ export class AuthService {
     }
   }
 
-/*------------------------------------        
+  /*------------------------------------        
                VERIFY TOKEN              
 ---------------------------------------*/
 
   async verifyToken({ email, token }) {
     try {
-      const user = await this.userRepository.exist({
+      const user = await this.userRepository.findUserByField({
         field: 'email',
         value: email,
       });

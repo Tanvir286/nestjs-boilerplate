@@ -93,7 +93,7 @@ export class UcodeRepository {
     forEmailChange?: boolean;
   }) {
     if (!forEmailChange) {
-      const userDetails = await this.userRepository.exist({
+      const userDetails = await this.userRepository.findUserByField({
         field: 'email',
         value: email,
       });
@@ -147,6 +147,7 @@ export class UcodeRepository {
    */
   
   async verifyToken({ email, token }: { email: string; token: string }) {
+ 
     const updatedToken = await this.prisma.ucode.updateMany({
       where: {
         token: token,
@@ -226,6 +227,8 @@ export class UcodeRepository {
 
   /**
    * Check if token is verified
+   * @param email - the email of the user
+   * @param token - the token to verify
    * @returns boolean - true if verified, false otherwise
    */
   async verifycheckToken({ email, token }: { email: string; token: string }) {
@@ -255,8 +258,11 @@ export class UcodeRepository {
 
   /**
    * delete ucode token
+   * @param email - the email of the user
+   * @param token - the token to delete
    * @returns
    */
+  
   async deleteToken({ email, token }) {
     await this.prisma.ucode.deleteMany({
       where: {
@@ -268,6 +274,12 @@ export class UcodeRepository {
   /*----------------------------------------------------------
                     Create Verification Token
   ----------------------------------------------------------*/
+
+  /**
+   * create a verification token for a user
+   * @param params - object containing userId and email
+   * @returns the created ucode record or null if an error occurs
+   */
 
   async createVerificationToken(
     params: { 

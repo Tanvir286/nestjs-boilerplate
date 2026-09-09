@@ -11,11 +11,19 @@ import { ArrayHelper } from '../../helper/array.helper';
 @Injectable()
 export class UserRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+
+  /*----------------------------------------------------------
+                        Get User By Email
+  ----------------------------------------------------------*/
+
   /**
    * get user by email
    * @param email
    * @returns
    */
+
+
   async getUserByEmail(email: string) {
     const user = await this.prisma.user.findFirst({
       where: {
@@ -25,16 +33,10 @@ export class UserRepository {
     return user;
   }
 
-  // email varification
-  async verifyEmail({ email }) {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        email: email,
-      },
-    });
-    return user;
-  }
-
+  /*----------------------------------------------------------
+                        Get User By Id
+  ----------------------------------------------------------*/
+  
   /**
    * get user details
    * @returns
@@ -56,46 +58,35 @@ export class UserRepository {
     return user;
   }
 
-  /**
-   * Check existance
-   * @returns
-   */
-  async exist({ field, value }) {
-    const model = await this.prisma.user.findFirst({
-      where: {
-        [field]: value,
-      },
-    });
-    return model;
-  }
+  /*----------------------------------------------------------
+                        Get User By Id
+  ----------------------------------------------------------*/
+
+
+
 
   /**
-   * Create su admin user
+   * Find a user by a specific field
    * @param param0
    * @returns
    */
-  async createSuAdminUser({ username, email, password }) {
-    try {
-      password = await bcrypt.hash(password, appConfig().security.salt);
+  async findUserByField({ field, value }) {
+  const model = await this.prisma.user.findFirst({
+    where: {
+      [field]: value,
+    },
+  });
 
-      const user = await this.prisma.user.create({
-        data: {
-          name: username,
-          email: email,
-          password: password,
-          type: UserType.ADMIN,
-        },
-      });
-      return user;
-    } catch (error) {
-      throw error;
-    }
-  }
+  return model;
+}
+
+
+
+  /*----------------------------------------------
+                  Create User
+  -----------------------------------------------*/
 
  
-
-
-
  
   /**
    * create user under a tenant
@@ -130,7 +121,7 @@ export class UserRepository {
       }
 
       if (email) {
-        const userEmailExist = await this.exist({
+        const userEmailExist = await this.findUserByField({
           field: 'email',
           value: String(email),
         });
@@ -223,7 +214,7 @@ export class UserRepository {
       }
       if (email) {
         // Check if email already exist
-        const userEmailExist = await this.exist({
+        const userEmailExist = await this.findUserByField({
           field: 'email',
           value: String(email),
         });

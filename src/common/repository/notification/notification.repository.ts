@@ -53,7 +53,15 @@ export type NotificationType =
 
 export class NotificationRepository {
   
-  // create notification wit
+  /*----------------------------------------------------------
+                        Create Notification
+  ----------------------------------------------------------*/
+  
+  /**
+   * create notification with the given payload
+   * @param payload - notification details
+   * @returns the created notification
+   */
   static async createNotification(payload: {
     sender_id?: string | null;
     receiver_id: string;
@@ -93,7 +101,18 @@ export class NotificationRepository {
     }
   }
 
-  // send push notification using firebase
+  /*----------------------------------------------------------
+                        Send Push Notification
+  ----------------------------------------------------------*/
+
+  /**
+   * send push notification using firebase
+   * @param receiverId - the ID of the user to send the notification to
+   * @param type - the type of the notification
+   * @param text - the text of the notification
+   * @param entityId - the ID of the entity related to the notification
+   */
+
   private static async sendPushNotification(
     receiverId: string,
     type: string,
@@ -139,7 +158,15 @@ export class NotificationRepository {
     }
   }
 
-  // get notification title based on type
+   /*----------------------------------------------------------
+                        Get Notification Title
+  ----------------------------------------------------------*/
+
+  /**
+   * get notification title based on type
+   * @param type - the type of the notification
+   * @returns the title of the notification
+   */
   private static getNotificationTitle(type: string): string {
     const titles: Record<string, string> = {
       new_user_registration: 'New User Registration',
@@ -166,6 +193,6 @@ export class NotificationRepository {
 
     return titles[type] || 'New Notification';
   }
+  
 
-   
-}
+}    

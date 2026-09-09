@@ -69,7 +69,6 @@ export const sendUserNotification = async (
       (Only Send User Notification)
 ----------------------------------------*/
 
-
 type SendMeNotificationPayload = {
   sender_id?: string | null;
   receiver_id: string;
