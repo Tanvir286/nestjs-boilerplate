@@ -136,10 +136,16 @@ export class UcodeRepository {
   }
 
 
+  /*----------------------------------------------------------
+                        Verify Token
+  ----------------------------------------------------------*/
+
+
   /**
    * verify ucode token
    * @returns { success: boolean, message: string }
    */
+  
   async verifyToken({ email, token }: { email: string; token: string }) {
     const updatedToken = await this.prisma.ucode.updateMany({
       where: {
@@ -213,6 +219,11 @@ export class UcodeRepository {
     };
   }
 
+
+  /*----------------------------------------------------------
+                        Delete Token
+  ----------------------------------------------------------*/
+
   /**
    * Check if token is verified
    * @returns boolean - true if verified, false otherwise
@@ -237,6 +248,11 @@ export class UcodeRepository {
     return false;
   }
 
+
+  /*-------------------------------------------------------
+                        Delete Token                          
+  -------------------------------------------------------*/
+
   /**
    * delete ucode token
    * @returns
@@ -249,7 +265,15 @@ export class UcodeRepository {
     });
   }
 
-  async createVerificationToken(params: { userId: string; email: string }) {
+  /*----------------------------------------------------------
+                    Create Verification Token
+  ----------------------------------------------------------*/
+
+  async createVerificationToken(
+    params: { 
+      userId: string; 
+      email: string 
+    }) {
     try {
       const token = randomBytes(32).toString('hex');
 
@@ -258,7 +282,7 @@ export class UcodeRepository {
           userId: params.userId,
           email: params.email,
           token: token,
-          expiredAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          expiredAt: new Date(Date.now() + 24 * 60 * 60 * 1000), 
           status: 1,
         },
       });
@@ -269,3 +293,5 @@ export class UcodeRepository {
     }
   }
 }
+
+
