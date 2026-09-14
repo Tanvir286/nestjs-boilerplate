@@ -12,6 +12,25 @@ import { ArrayHelper } from '../../helper/array.helper';
 export class UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /*----------------------------------------------------------
+                        findUserByField
+  ----------------------------------------------------------*/
+
+  /**
+   * Find a user by a specific field
+   * @param param0
+   * @returns
+   */
+
+  async findUserByField({ field, value }) {
+    const model = await this.prisma.user.findFirst({
+      where: {
+        [field]: value,
+      },
+    });
+
+    return model;
+  }
 
   /*----------------------------------------------------------
                         Get User By Email
@@ -22,8 +41,7 @@ export class UserRepository {
    * @param email
    * @returns
    */
-
-
+  
   async getUserByEmail(email: string) {
     const user = await this.prisma.user.findFirst({
       where: {
@@ -36,7 +54,7 @@ export class UserRepository {
   /*----------------------------------------------------------
                         Get User By Id
   ----------------------------------------------------------*/
-  
+
   /**
    * get user details
    * @returns
@@ -58,36 +76,10 @@ export class UserRepository {
     return user;
   }
 
-  /*----------------------------------------------------------
-                        Get User By Id
-  ----------------------------------------------------------*/
-
-
-
-
-  /**
-   * Find a user by a specific field
-   * @param param0
-   * @returns
-   */
-  async findUserByField({ field, value }) {
-  const model = await this.prisma.user.findFirst({
-    where: {
-      [field]: value,
-    },
-  });
-
-  return model;
-}
-
-
-
   /*----------------------------------------------
                   Create User
   -----------------------------------------------*/
 
- 
- 
   /**
    * create user under a tenant
    * @param param0
@@ -424,14 +416,6 @@ export class UserRepository {
     }
   }
 
-  
-
- 
-
-  
-
-  
-  
   // get user information
   async getUserInfo(user_id: string) {
     const user = await this.prisma.user.findUnique({
