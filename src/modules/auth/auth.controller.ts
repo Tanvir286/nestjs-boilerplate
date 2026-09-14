@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   HttpException,
   HttpStatus,
   Patch,
@@ -18,7 +19,13 @@ import {
   FileFieldsInterceptor,
   FileInterceptor,
 } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { memoryStorage } from 'multer';
 import { LocalAuthGuard } from 'src/modules/auth/guards/local-auth.guard';
@@ -31,6 +38,9 @@ import { Role } from 'src/common/guard/role/role.enum';
 import { Roles } from 'src/common/guard/role/roles.decorator';
 import { RolesGuard } from 'src/common/guard/role/roles.guard';
 import { FirebaseAuthDto } from './dto/firebase-auth.dto';
+import { SWAGGER_AUTH } from 'src/common/swagger/swagger-auth';
+import { ResendVerificationEmailDto } from './dto/resend-verification-email.dto';
+import { UnifiedLoginDto } from './dto/unified-login.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -40,6 +50,16 @@ export class AuthController {
   /*------------------------------------
                USER DETAILS              
 ---------------------------------------*/
+  @ApiBearerAuth(SWAGGER_AUTH.USER)
+  @ApiOperation({
+    summary: 'Get current user details',
+    description: 'Returns the profile of the authenticated user.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async me(@Req() req: Request) {
@@ -58,7 +78,39 @@ export class AuthController {
   /*------------------------------------
            USER REGISTER               
 ---------------------------------------*/
-
+  @ApiOperation({
+    summary: 'Register a new user',
+    description: 'Creates a new account. `type` should be `ADMIN` or `USER`.',
+  })
+  @ApiBody({
+    type: CreateUserDto,
+    examples: {
+      admin: {
+        summary: 'Register as Admin',
+        value: {
+          first_name: 'System',
+          last_name: 'Admin',
+          address: '1 Admin HQ',
+          email: 'admin@gmail.com',
+          password: '12345678',
+          type: 'ADMIN',
+        },
+      },
+      user: {
+        summary: 'Register as User',
+        value: {
+          first_name: 'John',
+          last_name: 'Doe',
+          address: '123 Main Street',
+          email: 'user@gmail.com',
+          password: '12345678',
+          type: 'USER',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
   @Post('register')
   async create(@Body() data: CreateUserDto) {
     try {
@@ -117,6 +169,12 @@ export class AuthController {
                VERIFY EMAIL               
 ---------------------------------------*/
 
+  @ApiOperation({
+    summary: 'Verify email address',
+    description: 'Confirms the email using the token sent during registration.',
+  })
+  @ApiBody({ type: VerifyEmailDto })
+  @ApiResponse({ status: 200, description: 'Email verified successfully' })
   @Post('verify-email')
   async verifyEmail(@Body() data: VerifyEmailDto) {
     try {
@@ -140,11 +198,13 @@ export class AuthController {
     }
   }
 
-/*------------------------------------
+  /*------------------------------------
       Resend Email  Verification               
 ---------------------------------------*/
 
   @ApiOperation({ summary: 'Resend verification email' })
+  @ApiBody({ type: ResendVerificationEmailDto })
+  @ApiResponse({ status: 200, description: 'Verification email sent' })
   @Post('resend-verification-email')
   async resendVerificationEmail(@Body() data: { email: string }) {
     try {
@@ -164,12 +224,51 @@ export class AuthController {
   /*------------------------------------
                USER LOGIN               
 ---------------------------------------*/
+  @ApiOperation({
+    summary: 'Unified Login (Admin & User)',
+    description: `Authenticate as either **Admin** or **User**.
+**Swagger auto-auth:**
+After a successful login, the returned token is stored under the correct Swagger auth
+scheme (\`admin-token\` or \`user-token\`). Each token persists independently.
+
+**Test Credentials:**
+
+| Role  | Email             | Password   |
+|-------|-------------------|------------|
+| ADMIN | admin@gmail.com   | 123456     |
+| USER  | user1@gmail.com   | 123456     |`,
+  })
+  @ApiBody({
+    type: UnifiedLoginDto,
+    examples: {
+      admin: {
+        summary: 'Admin Login',
+        description: 'Role: ADMIN',
+        value: {
+          email: process.env.ADMIN_EMAIL || 'admin@gmail.com',
+          password: process.env.ADMIN_PASSWORD || '12345678',
+        },
+      },
+      user: {
+        summary: 'User Login',
+        description: 'Role: USER',
+        value: {
+          email: process.env.USER_EMAIL || 'user1@gmail.com',
+          password: process.env.USER_PASSWORD || '12345678',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiResponse({ status: 400, description: 'Email or password missing' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @UseGuards(LocalAuthGuard)
+  @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(
     @Req() req: Request,
     @Res() res: Response,
-    @Body() data: { fcm_token?: string; device_type?: string },
+    @Body() data: UnifiedLoginDto,
   ) {
     try {
       const user_id = req.user.id;
@@ -185,7 +284,8 @@ export class AuthController {
       // store to secure cookies
       res.cookie('refresh_token', response.authorization.refresh_token, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
         maxAge: 1000 * 60 * 60 * 24 * 7,
       });
       res.json(response);

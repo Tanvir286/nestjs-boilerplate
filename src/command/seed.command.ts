@@ -28,7 +28,7 @@ export class SeedCommand extends CommandRunner {
 
   private async main({ reset = false }: SeedCommandOptions) {
     try {
-      const password = await bcrypt.hash('123456', 10);
+      const password = await bcrypt.hash('12345678', 10);
 
       console.log('👤 Users seeding started...');
 

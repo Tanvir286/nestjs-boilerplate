@@ -10,30 +10,28 @@ import { AuthGuard } from '@nestjs/passport';
 @Injectable()
 export class LocalAuthGuard extends AuthGuard('local') {
   canActivate(context: ExecutionContext) {
-    // Add your custom authentication logic here
-    // for example, call super.logIn(request) to establish a session.
     return super.canActivate(context);
   }
 
-  handleRequest(err, user, info, context: ExecutionContext, status) {
-    // You can throw an exception based on either "info" or "err" arguments
+  handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
     const request = context.switchToHttp().getRequest();
     const body = request?.body ?? {};
     const email = body?.email;
     const password = body?.password;
 
     if (err || !user) {
+      
       if (!email) {
-        throw new HttpException("email not provided", HttpStatus.OK);
-      } else if (!password) {
-        throw new HttpException(
-          { message: 'password not provided' },
-          HttpStatus.OK,  
-        );
-      } else {
-        throw err || new UnauthorizedException();
+        throw new HttpException('Email not provided', HttpStatus.BAD_REQUEST);
       }
+      if (!password) {
+        throw new HttpException('Password not provided', HttpStatus.BAD_REQUEST);
+      }
+
+      // Wrong credentials → 401 Unauthorized
+      throw err || new UnauthorizedException('Invalid email or password');
     }
+
     return user;
   }
 }

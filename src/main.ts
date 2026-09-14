@@ -25,6 +25,7 @@ import appConfig from './config/app.config';
 import initializeFirebase from './config/firebase.config';
 import { getPaymentSuccessHtml } from './common/utils/payment-success.util';
 import { getPaymentFailedHtml } from './common/utils/payment-failed.util';
+import { buildSwaggerOptions, swaggerUiOptions } from './common/swagger/swagger-auth';
 
 /*-------------------------------------------
              bootstrap function
@@ -252,42 +253,10 @@ async function bootstrap() {
   // Swagger API Documentation
   // ==========================================================
 
-  // Configure Swagger/OpenAPI documentation.
-  const options = new DocumentBuilder()
+  // swagger
+  const document = SwaggerModule.createDocument(app, buildSwaggerOptions());
 
-    // API documentation title.
-    .setTitle(`${process.env.APP_NAME} api`)
-
-    // API documentation description.
-    .setDescription(`${process.env.APP_NAME} api docs`)
-
-    // API documentation version.
-    .setVersion('1.0')
-
-    // Add application name as a Swagger tag.
-    .addTag(`${process.env.APP_NAME}`)
-
-    // Enable Bearer Token authentication in Swagger.
-    //
-    // This allows testing protected APIs using JWT tokens.
-    .addBearerAuth()
-
-    .build();
-
-  // Generate Swagger/OpenAPI document from the
-  // application's controllers and decorators.
-  const document = SwaggerModule.createDocument(app, options);
-
-  // ----------------------------------------------------------
-  // Swagger UI Route
-  // ----------------------------------------------------------
-  // Swagger documentation will be available at:
-  //
-  // /api/docs
-  //
-  // Example:
-  // https://your-domain.com/api/docs
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('api/docs', app, document, swaggerUiOptions);
 
   // ==========================================================
   // Server Host Configuration
@@ -321,6 +290,12 @@ async function bootstrap() {
 
   // Start the NestJS server using the configured host and port.
   await app.listen(port, host);
+
+  const displayHost = ['0.0.0.0', '::'].includes(host) ? 'localhost' : host;
+  const baseUrl = `http://${displayHost}:${port}`;
+  console.log(`Base URL: ${baseUrl}`);
+  console.log(`API Base URL: ${baseUrl}/api`);
+  console.log(`Swagger URL: ${baseUrl}/api/docs`);
 }
 
 bootstrap();

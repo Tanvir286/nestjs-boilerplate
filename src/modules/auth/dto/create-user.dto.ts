@@ -10,34 +10,54 @@ import {
 import { UserType } from '@prisma/client';
 
 export class CreateUserDto {
-  @ApiPropertyOptional({ example: 'John Doe' })
+  @ApiPropertyOptional({
+    example: 'John Doe',
+    description: 'Full name (auto-composed from first_name + last_name if omitted)',
+  })
   @IsString()
   @IsOptional()
   name?: string;
 
+  @ApiProperty({ example: 'John', description: 'First name' })
+  @IsString()
   @IsNotEmpty()
-  @ApiProperty()
-  first_name?: string;
+  first_name: string;
 
+  @ApiProperty({ example: 'Doe', description: 'Last name' })
+  @IsString()
   @IsNotEmpty()
-  @ApiProperty()
-  last_name?: string;
+  last_name: string;
 
+  @ApiProperty({
+    example: '123 Main Street, Springfield',
+    description: 'Address',
+  })
+  @IsString()
   @IsNotEmpty()
-  @ApiProperty()
-  address?: string;
+  address: string;
 
-  @ApiProperty({ example: 'john@example.com' })
-  @IsEmail()
+  @ApiProperty({
+    example: 'john@example.com',
+    description: 'Unique email address',
+  })
+  @IsEmail({}, { message: 'Please provide a valid email address' })
+  @IsNotEmpty()
   email: string;
 
-  @ApiProperty({ example: 'password123' })
+  @ApiProperty({
+    example: 'password123',
+    description: 'Password (min 8 characters)',
+    minLength: 8,
+  })
+  @IsString()
   @MinLength(8, { message: 'Password should be minimum 8 characters' })
   password: string;
 
   @ApiPropertyOptional({
     enum: UserType,
-    default: UserType.HOMEOWNER,
+    example: UserType.USER,
+    description: 'User type (ADMIN or USER)',
+    default: UserType.USER,
   })
   @IsOptional()
   @IsEnum(UserType)

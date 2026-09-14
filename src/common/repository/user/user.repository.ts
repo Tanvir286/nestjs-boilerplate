@@ -140,11 +140,11 @@ export class UserRepository {
       }
 
       if (first_name) {
-        data['first_name'] = first_name;
+        data['firstName'] = first_name;
       }
 
       if (last_name) {
-        data['last_name'] = last_name;
+        data['lastName'] = last_name;
       }
 
       if (address) {

@@ -142,10 +142,10 @@ export class AuthService {
         type: type,
       });
 
-      if (user == null && user.success == false) {
+      if (!user?.success || !user.data?.id) {
         return {
           success: false,
-          message: 'Failed to create account',
+          message: user?.message || 'Failed to create account',
         };
       }
 

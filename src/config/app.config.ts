@@ -1,9 +1,9 @@
 export default () => ({
   /*=========================================================
                         application Configuration
-      ==========================================================*/
+  ==========================================================*/
   // URL, host, port, and client application URL.
- 
+
   app: {
     // Application name
     name: process.env.APP_NAME,
@@ -20,8 +20,8 @@ export default () => ({
   },
 
   /*==========================================================
-              File System / Cloud Storage Configuration
-      ==========================================================*/
+             File System / Cloud Storage Configuration
+  ==========================================================*/
 
   fileSystems: {
     // Local/public storage configuration.
@@ -72,7 +72,7 @@ export default () => ({
     // Number of salt rounds used for password hashing.
     salt: 10,
   },
- 
+
   /*==========================================================
                     JWT Configuration
   ========================================================== */
@@ -88,7 +88,7 @@ export default () => ({
   /*==========================================================
                    Google Maps Configuration
   ========================================================== */
-  
+
   googleMaps: {
     apiKey: process.env.GOOGLE_MAPS_API_KEY,
   },
@@ -122,7 +122,7 @@ export default () => ({
   /*==========================================================
                    Payment Configuration
   ========================================================== */
-  
+
   payment: {
     // Stripe Configuration
     stripe: {
@@ -139,7 +139,7 @@ export default () => ({
   /*==========================================================
                    Storage Configuration
   ========================================================== */
-   /**
+  /**
    * Defines the directory structure used for storing
    * different types of uploaded files.
    *
@@ -151,7 +151,6 @@ export default () => ({
    */
 
   storageUrl: {
-    
     // Physical storage directory.
     rootUrl: './public/storage',
 
