@@ -33,6 +33,8 @@ export class AuthService {
     @InjectRedis() private readonly redis: Redis,
   ) {}
 
+  
+
   private resolveAvatarUrl(avatar: string | null | undefined) {
     if (!avatar) {
       return null;

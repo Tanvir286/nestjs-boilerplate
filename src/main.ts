@@ -1,135 +1,326 @@
-// external imports
+/*-------------------------------------------
+               external imports
+-------------------------------------------*/
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
 import * as express from 'express';
 import helmet from 'helmet';
 import { join, resolve } from 'path';
-// internal imports
+
+/*-------------------------------------------
+             internal imports
+-------------------------------------------*/
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
+
 import { CustomExceptionFilter } from './common/exception/custom-exception.filter';
-import { TanvirStorage } from './common/lib/Disk/TanvirStorage';
-import appConfig from './config/app.config';
 import { PrismaExceptionFilter } from './common/exception/prisma-exception.filter';
+
+import { TanvirStorage } from './common/lib/Disk/TanvirStorage';
+
+import appConfig from './config/app.config';
 import initializeFirebase from './config/firebase.config';
+import { getPaymentSuccessHtml } from './common/utils/payment-success.util';
+import { getPaymentFailedHtml } from './common/utils/payment-failed.util';
+
+/*-------------------------------------------
+             bootstrap function
+-------------------------------------------*/
 
 async function bootstrap() {
+  // ----------------------------------------------------------
+  // Initialize Firebase Admin SDK
+  // ----------------------------------------------------------
+  // Firebase is initialized before creating the NestJS app.
+  // This ensures Firebase Admin is ready when any service
+  // needs to use authentication, FCM, or other Firebase features.
   // initialize Firebase Admin SDK early so `admin` is ready for services
   initializeFirebase();
- 
+
+  // ----------------------------------------------------------
+  // Create NestJS Application
+  // ----------------------------------------------------------
+  // rawBody: true keeps the original request body available.
+  // This can be useful for services such as Stripe webhook
+  // signature verification.
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });
 
- 
+  // ----------------------------------------------------------
+  // Configure WebSocket Adapter
+  // ----------------------------------------------------------
+  // Socket.IO is used for real-time communication such as
+  // chat, notifications, live updates, etc.
   app.useWebSocketAdapter(new IoAdapter(app));
+
+  // ----------------------------------------------------------
+  // Global API Prefix
+  // ----------------------------------------------------------
+  // All NestJS API routes will start with /api.
+  //
+  // Example:
+  // GET /users
+  // becomes:
+  // GET /api/users
   app.setGlobalPrefix('api');
+
+  // ----------------------------------------------------------
+  // Enable CORS
+  // ----------------------------------------------------------
+  // Allows the frontend or other clients from different
+  // origins/domains to communicate with this backend.
   app.enableCors();
+
+  // ----------------------------------------------------------
+  // Enable Helmet
+  // ----------------------------------------------------------
+  // Helmet adds several HTTP security headers to help
+  // protect the application from common web vulnerabilities.
   app.use(helmet());
 
-  // Global body size limit – 50 MB (same as multer fileSize limit)
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
- 
-
-  app.useStaticAssets(join(__dirname, "..", "..", "public"), {
-    index: false,
-    prefix: "/public",
-  });
- // gobal
- app.useGlobalPipes(
-  new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: false,
-    transformOptions: {
-      enableImplicitConversion: true,
-    },
-    exceptionFactory: (errors) => {
-      const messages = errors
-        .map((error) => Object.values(error.constraints || {}))
-        .flat()
-        .join(', ');
-
-      return new BadRequestException({
-        success: false,
-        message: messages,
-      });
-    },
-  }),
-);
-  
-  app.useGlobalFilters(
-    new CustomExceptionFilter(),
-    new PrismaExceptionFilter(),  
+  // ----------------------------------------------------------
+  // Configure JSON Body Size Limit
+  // ----------------------------------------------------------
+  // Allows JSON requests up to 50 MB.
+  // This should match the maximum file/request size
+  // expected by the application.
+  app.use(
+    express.json({
+      limit: '50mb',
+    }),
   );
 
+  // ----------------------------------------------------------
+  // Configure URL-Encoded Body Size Limit
+  // ----------------------------------------------------------
+  // Allows URL-encoded requests up to 50 MB.
+  //
+  // extended: true allows rich/nested objects to be parsed.
+  app.use(
+    express.urlencoded({
+      limit: '50mb',
+      extended: true,
+    }),
+  );
+
+  // ----------------------------------------------------------
+  // Serve Static Files
+  // ----------------------------------------------------------
+  // Files inside the "public" directory will be publicly
+  // accessible through the /public URL prefix.
+  //
+  // Example:
+  // public/image.jpg
+  // becomes:
+  // /public/image.jpg
+  //
+  // index: false prevents directory index pages from being
+  // automatically displayed.
+  app.useStaticAssets(join(__dirname, '..', '..', 'public'), {
+    index: false,
+    prefix: '/public',
+  });
+
+  // ==========================================================
+  // Global Validation Pipe
+  // ==========================================================
+  app.useGlobalPipes(
+    new ValidationPipe({
+      // Automatically transform incoming request values
+      // according to DTO types.
+      transform: true,
+
+      // Removes properties that are not defined in the DTO.
+      // Helps keep request data clean and controlled.
+      whitelist: true,
+
+      // If true, unexpected properties would throw an error.
+      // Currently disabled.
+      forbidNonWhitelisted: false,
+
+      // Allows automatic type conversion based on DTO metadata.
+      //
+      // Example:
+      // "25" -> 25
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+
+      // --------------------------------------------------------
+      // Custom Validation Error Response
+      // --------------------------------------------------------
+      // Converts NestJS validation errors into a simple and
+      // consistent API response format.
+      exceptionFactory: (errors) => {
+        // Extract validation messages from each error.
+        const messages = errors
+          .map((error) => Object.values(error.constraints || {}))
+          .flat()
+          .join(', ');
+
+        // Return a BadRequestException with our custom format.
+        return new BadRequestException({
+          success: false,
+          message: messages,
+        });
+      },
+    }),
+  );
+
+  // ==========================================================
+  // Global Exception Filters
+  // ==========================================================
+
+  // These filters handle application-level exceptions globally.
+  //
+  // CustomExceptionFilter:
+  // Handles general/custom application exceptions.
+  //
+  // PrismaExceptionFilter:
+  // Handles Prisma/database-related exceptions and converts
+  // them into cleaner API responses.
+  app.useGlobalFilters(
+    new CustomExceptionFilter(),
+    new PrismaExceptionFilter(),
+  );
+
+  // ==========================================================
+  // Get Express Instance
+  // ==========================================================
+
+  // Retrieves the underlying Express application instance.
+  // This allows us to create custom Express routes directly.
   const expressApp = app.getHttpAdapter().getInstance();
 
+  // ==========================================================
+  // Payment Success Route
+  // ==========================================================
   expressApp.get('/success', (req, res) => {
+    // Get the payment session ID from query parameters.
     const sessionId = String(req.query.session_id || '');
-    const html = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Payment Successful</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f4faf7; color: #163126; }
-    .card { background: #fff; border: 1px solid #d8efe1; border-radius: 16px; padding: 32px; max-width: 520px; width: calc(100% - 32px); box-shadow: 0 12px 30px rgba(0,0,0,.08); text-align: center; }
-    h1 { margin: 0 0 12px; color: #11824d; }
-    p { margin: 8px 0; line-height: 1.5; }
-    .session { word-break: break-all; font-size: 12px; background: #eef7f1; padding: 10px 12px; border-radius: 10px; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Payment successful</h1>
-    <p>Your deposit has been completed successfully.</p>
-    <p class="session">Session ID: ${sessionId || 'N/A'}</p>
-  </div>
-</body>
-</html>`;
-
-    res.status(200).send(html);
+    // Generate and return the payment success page.
+    res.status(200).send(getPaymentSuccessHtml(sessionId));
   });
 
+  // ==========================================================
+  // Payment Failed Route
+  // ==========================================================
   expressApp.get('/failed', (req, res) => {
-    res.status(200).send('<!doctype html><html><body style="font-family: Arial, sans-serif; padding: 40px;"><h1>Payment failed</h1><p>Your payment was not completed.</p></body></html>');
+    // Generate and return the payment failed page.
+    res.status(200).send(getPaymentFailedHtml());
   });
 
-  // storage setup
+  // ==========================================================
+  // Storage Configuration
+  // ==========================================================
+
+  // Configure TanvirStorage.
+  //
+  // Current driver:
+  // local
+  //
+  // The configuration also contains S3/MinIO credentials
+  // so the storage system can work with MinIO when required.
   TanvirStorage.config({
     driver: 'local',
     connection: {
+      // Base URL for storage.
       rootUrl: appConfig().storageUrl.rootUrl,
+      // Public URL used to access uploaded files.
       publicUrl: appConfig().storageUrl.rootUrlPublic,
+      // S3 / MinIO bucket name.
       awsBucket: appConfig().fileSystems.s3.bucket,
+      // S3 / MinIO access key.
       awsAccessKeyId: appConfig().fileSystems.s3.key,
+      // S3 / MinIO secret key.
       awsSecretAccessKey: appConfig().fileSystems.s3.secret,
+      // S3 / MinIO region.
       awsDefaultRegion: appConfig().fileSystems.s3.region,
+      // Custom endpoint used by MinIO.
       awsEndpoint: appConfig().fileSystems.s3.endpoint,
+      // Enable MinIO-specific configuration.
       minio: true,
     },
   });
 
-  // swagger
+  // ==========================================================
+  // Swagger API Documentation
+  // ==========================================================
+
+  // Configure Swagger/OpenAPI documentation.
   const options = new DocumentBuilder()
+
+    // API documentation title.
     .setTitle(`${process.env.APP_NAME} api`)
+
+    // API documentation description.
     .setDescription(`${process.env.APP_NAME} api docs`)
+
+    // API documentation version.
     .setVersion('1.0')
+
+    // Add application name as a Swagger tag.
     .addTag(`${process.env.APP_NAME}`)
+
+    // Enable Bearer Token authentication in Swagger.
+    //
+    // This allows testing protected APIs using JWT tokens.
     .addBearerAuth()
+
     .build();
+
+  // Generate Swagger/OpenAPI document from the
+  // application's controllers and decorators.
   const document = SwaggerModule.createDocument(app, options);
+
+  // ----------------------------------------------------------
+  // Swagger UI Route
+  // ----------------------------------------------------------
+  // Swagger documentation will be available at:
+  //
+  // /api/docs
+  //
+  // Example:
+  // https://your-domain.com/api/docs
   SwaggerModule.setup('api/docs', app, document);
- 
 
+  // ==========================================================
+  // Server Host Configuration
+  // ==========================================================
+
+  // Read HOST from environment variables.
+  //
+  // If HOST is not provided, use the application config.
+  // Finally fallback to 0.0.0.0.
+  //
+  // 0.0.0.0 allows the server to accept connections
+  // from all network interfaces.
   const host = process.env.HOST?.trim() || appConfig().app.host || '0.0.0.0';
-  const port = Number.parseInt(process.env.PORT ?? String(appConfig().app.port), 10) || 4000;
 
+  // ==========================================================
+  // Server Port Configuration
+  // ==========================================================
+
+  // Read PORT from environment variables.
+  //
+  // If PORT is not available, use the port from app config.
+  // If that is also unavailable/invalid, fallback to 4000.
+
+  const port =
+    Number.parseInt(process.env.PORT ?? String(appConfig().app.port), 10) ||
+    4000;
+
+  // ==========================================================
+  // Start Server
+  // ==========================================================
+
+  // Start the NestJS server using the configured host and port.
   await app.listen(port, host);
 }
+
 bootstrap();

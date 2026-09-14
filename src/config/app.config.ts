@@ -1,15 +1,32 @@
 export default () => ({
+  /*=========================================================
+                        application Configuration
+      ==========================================================*/
+  // URL, host, port, and client application URL.
+ 
   app: {
+    // Application name
     name: process.env.APP_NAME,
+    // Application key.
     key: process.env.APP_KEY,
+    // Backend application URL
     url: process.env.APP_URL,
+    // Frontend / client application URL.
     client_app_url: process.env.CLIENT_APP_URL,
+    // Server host.
     host: process.env.HOST?.trim() || '0.0.0.0',
+    // Server port.
     port: parseInt(process.env.PORT ?? '4000', 10) || 4000,
   },
 
+  /*==========================================================
+              File System / Cloud Storage Configuration
+      ==========================================================*/
+
   fileSystems: {
+    // Local/public storage configuration.
     public: {},
+    // AWS S3 / MinIO storage configuration.
     s3: {
       driver: 's3',
       key: process.env.AWS_ACCESS_KEY_ID,
@@ -19,6 +36,7 @@ export default () => ({
       url: process.env.AWS_URL,
       endpoint: process.env.AWS_ENDPOINT,
     },
+    // Google Cloud Storage configuration.
     gcs: {
       driver: 'gcs',
       projectId: process.env.GCP_PROJECT_ID,
@@ -28,9 +46,17 @@ export default () => ({
     },
   },
 
+  /*==========================================================
+                      Database Configuration
+   ==========================================================*/
+
   database: {
     url: String(process.env.DATABASE_URL),
   },
+
+  /*==========================================================
+                    Redis Configuration
+  ========================================================== */
 
   redis: {
     host: process.env.REDIS_HOST,
@@ -38,18 +64,38 @@ export default () => ({
     port: process.env.REDIS_PORT,
   },
 
+  /*==========================================================
+                     Security Configuration
+  ========================================================== */
+
   security: {
+    // Number of salt rounds used for password hashing.
     salt: 10,
   },
+ 
+  /*==========================================================
+                    JWT Configuration
+  ========================================================== */
 
   jwt: {
+    // Secret key used to sign and verify JWT tokens.
     secret: process.env.JWT_SECRET,
+    // Token expiration time.
+    // Example: "1d", "7d", "24h".
     expiry: process.env.JWT_EXPIRY,
   },
 
+  /*==========================================================
+                   Google Maps Configuration
+  ========================================================== */
+  
   googleMaps: {
     apiKey: process.env.GOOGLE_MAPS_API_KEY,
   },
+
+  /*==========================================================
+                    Mail Configuration
+  ========================================================== */
 
   mail: {
     host: process.env.MAIL_HOST || 'smtp.gmail.com',
@@ -59,7 +105,13 @@ export default () => ({
     from: process.env.MAIL_FROM_ADDRESS,
   },
 
+  /*==========================================================
+                Social Authentication Configuration
+  ========================================================== */
+  // OAuth configuration for social login providers.
+
   auth: {
+    // Google OAuth Configuration
     google: {
       app_id: process.env.GOOGLE_APP_ID,
       app_secret: process.env.GOOGLE_APP_SECRET,
@@ -67,7 +119,12 @@ export default () => ({
     },
   },
 
+  /*==========================================================
+                   Payment Configuration
+  ========================================================== */
+  
   payment: {
+    // Stripe Configuration
     stripe: {
       secret_key: process.env.STRIPE_SECRET_KEY,
       webhook_secret: process.env.STRIPE_WEBHOOK_SECRET,
@@ -79,12 +136,28 @@ export default () => ({
     },
   },
 
-  /**
-   * Storage directory
+  /*==========================================================
+                   Storage Configuration
+  ========================================================== */
+   /**
+   * Defines the directory structure used for storing
+   * different types of uploaded files.
+   *
+   * rootUrl:
+   *   Physical/local storage directory.
+   *
+   * rootUrlPublic:
+   *   Public URL prefix used to access stored files.
    */
+
   storageUrl: {
+    
+    // Physical storage directory.
     rootUrl: './public/storage',
+
+    // Public URL used to access stored files.
     rootUrlPublic: '/public/storage',
+
     // storage directory
     package: '/package',
     booking: '/booking',
@@ -96,10 +169,15 @@ export default () => ({
     portfolio: '/portfolio',
     websiteInfo: '/website-info',
     maidverification: '/maid-verification',
+    jobPhoto: 'job-photo/',
     // chat
     attachment: 'attachment/',
-    jobPhoto: 'job-photo/',
   },
+
+  /*==========================================================
+                    Default User Configuration
+  ========================================================== */
+  // Configuration for the default user.
 
   defaultUser: {
     system: {
