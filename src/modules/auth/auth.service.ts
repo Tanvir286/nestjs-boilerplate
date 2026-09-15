@@ -374,10 +374,10 @@ export class AuthService {
       if (updateUserDto.name !== undefined) data.name = updateUserDto.name;
 
       if (updateUserDto.first_name !== undefined)
-        data.first_name = updateUserDto.first_name;
+        data.firstName = updateUserDto.first_name;
 
       if (updateUserDto.last_name !== undefined)
-        data.last_name = updateUserDto.last_name;
+        data.lastName = updateUserDto.last_name;
 
       if (updateUserDto.address !== undefined)
         data.address = updateUserDto.address;

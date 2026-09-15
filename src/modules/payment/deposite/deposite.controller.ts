@@ -14,7 +14,10 @@ import { DepositeService } from './deposite.service';
 import { UpdateDepositDto } from './dto/update-deposite.dto';
 import { CreateDepositDto } from './dto/create-deposite.dto';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { SWAGGER_AUTH } from 'src/common/swagger/swagger-auth';
 
+@ApiBearerAuth(SWAGGER_AUTH.USER)
 @UseGuards(JwtAuthGuard)
 @Controller('deposite')
 export class DepositeController {

@@ -19,6 +19,7 @@ import { MessageGateway } from './message.gateway';
 import { Request } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { SWAGGER_AUTH } from 'src/common/swagger/swagger-auth';
 import {
   FileFieldsInterceptor,
   FileInterceptor,
@@ -28,7 +29,7 @@ import { diskStorage, memoryStorage } from 'multer';
 import appConfig from 'src/config/app.config';
 import { PaginationDto } from 'src/common/pagination/pagination.dto';
 
-@ApiBearerAuth()
+@ApiBearerAuth(SWAGGER_AUTH.USER)
 @ApiTags('Message')
 @UseGuards(JwtAuthGuard)
 @Controller('chat/message')

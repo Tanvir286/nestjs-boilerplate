@@ -11,13 +11,16 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { WithdrawService } from './withdraw.service';
 import { CreateWithdrawDto } from './dto/create-withdraw.dto';
 import { UpdateWithdrawDto } from './dto/update-withdraw.dto';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { UserRepository } from 'src/common/repository/user/user.repository';
 import appConfig from 'src/config/app.config';
+import { SWAGGER_AUTH } from 'src/common/swagger/swagger-auth';
 
+@ApiBearerAuth(SWAGGER_AUTH.USER)
 @Controller('withdraw')
 export class WithdrawController {
   constructor(private readonly withdrawService: WithdrawService) {}

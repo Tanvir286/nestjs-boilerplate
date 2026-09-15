@@ -22,6 +22,7 @@ import {
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -41,6 +42,11 @@ import { FirebaseAuthDto } from './dto/firebase-auth.dto';
 import { SWAGGER_AUTH } from 'src/common/swagger/swagger-auth';
 import { ResendVerificationEmailDto } from './dto/resend-verification-email.dto';
 import { UnifiedLoginDto } from './dto/unified-login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ResendTokenDto } from './dto/resend-token.dto';
+import { VerifyTokenDto } from './dto/verify-token.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -52,7 +58,7 @@ export class AuthController {
 ---------------------------------------*/
   @ApiBearerAuth(SWAGGER_AUTH.USER)
   @ApiOperation({
-    summary: 'Get current user details',
+    summary: 'Get current user details ❤️',
     description: 'Returns the profile of the authenticated user.',
   })
   @ApiResponse({
@@ -79,7 +85,7 @@ export class AuthController {
            USER REGISTER               
 ---------------------------------------*/
   @ApiOperation({
-    summary: 'Register a new user',
+    summary: 'Register a new user ❤️️',
     description: 'Creates a new account. `type` should be `ADMIN` or `USER`.',
   })
   @ApiBody({
@@ -170,7 +176,7 @@ export class AuthController {
 ---------------------------------------*/
 
   @ApiOperation({
-    summary: 'Verify email address',
+    summary: 'Verify email address ❤️',
     description: 'Confirms the email using the token sent during registration.',
   })
   @ApiBody({ type: VerifyEmailDto })
@@ -202,7 +208,7 @@ export class AuthController {
       Resend Email  Verification               
 ---------------------------------------*/
 
-  @ApiOperation({ summary: 'Resend verification email' })
+  @ApiOperation({ summary: 'Resend verification email ❤️' })
   @ApiBody({ type: ResendVerificationEmailDto })
   @ApiResponse({ status: 200, description: 'Verification email sent' })
   @Post('resend-verification-email')
@@ -225,7 +231,7 @@ export class AuthController {
                USER LOGIN               
 ---------------------------------------*/
   @ApiOperation({
-    summary: 'Unified Login (Admin & User)',
+    summary: 'Unified Login (Admin & User) ❤️',
     description: `Authenticate as either **Admin** or **User**.
 **Swagger auto-auth:**
 After a successful login, the returned token is stored under the correct Swagger auth
@@ -300,6 +306,34 @@ scheme (\`admin-token\` or \`user-token\`). Each token persists independently.
   /*------------------------------------
                USER UPDATE               
 ---------------------------------------*/
+  @ApiBearerAuth(SWAGGER_AUTH.USER)
+  @ApiOperation({
+    summary: 'Update current user profile  ❤️',
+    description:
+      "Updates the authenticated user's profile. Supports multipart/form-data with an optional `image` file (max 50MB).",
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        first_name: { type: 'string', example: 'John' },
+        last_name: { type: 'string', example: 'Doe' },
+        name: { type: 'string', example: 'John Doe' },
+        address: { type: 'string', example: '123 Main Street, Springfield' },
+        type: { type: 'string', enum: ['ADMIN', 'USER'], example: 'USER' },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Profile image (max 50MB)',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'User updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   @UseGuards(JwtAuthGuard)
   @Patch('update')
   @UseInterceptors(
@@ -328,7 +362,17 @@ scheme (\`admin-token\` or \`user-token\`). Each token persists independently.
   /*------------------------------------
                FORGOT PASSWORD               
 ---------------------------------------*/
-
+  @ApiOperation({
+    summary: 'Request password reset ❤️',
+    description:
+      'Sends a password reset token to the provided email if the account exists.',
+  })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Password reset token sent (if account exists)',
+  })
+  @ApiResponse({ status: 400, description: 'Email not provided / invalid' })
   @Post('forgot-password')
   async forgotPassword(@Body() data: { email: string }) {
     try {
@@ -348,10 +392,17 @@ scheme (\`admin-token\` or \`user-token\`). Each token persists independently.
   /*------------------------------------
          Reset PASSWORD                
 ---------------------------------------*/
+  @ApiOperation({
+    summary: 'Reset password with token ❤️',
+    description:
+      'Resets the account password using the token received via email.',
+  })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({ status: 201, description: 'Password reset successfully' })
+  @ApiResponse({ status: 400, description: 'Missing or invalid fields' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired token' })
   @Post('reset-password')
-  async resetPassword(
-    @Body() data: { email: string; token: string; password: string },
-  ) {
+  async resetPassword(@Body() data: ResetPasswordDto) {
     try {
       const email = data.email;
       const token = data.token;
@@ -384,8 +435,16 @@ scheme (\`admin-token\` or \`user-token\`). Each token persists independently.
   /*------------------------------------        
                RESEND TOKEN              
 ---------------------------------------*/
+  @ApiOperation({
+    summary: 'Resend password reset token ❤️',
+    description:
+      'Resends the password reset token to the provided email address.',
+  })
+  @ApiBody({ type: ResendTokenDto })
+  @ApiResponse({ status: 201, description: 'Password reset token resent' })
+  @ApiResponse({ status: 400, description: 'Email not provided' })
   @Post('resend-token')
-  async resendToken(@Body() data: { email: string }) {
+  async resendToken(@Body() data: ResendTokenDto) {
     try {
       const email = data.email;
       if (!email) {
@@ -403,8 +462,17 @@ scheme (\`admin-token\` or \`user-token\`). Each token persists independently.
   /*------------------------------------
          Verify Token              
 ---------------------------------------*/
+  @ApiOperation({
+    summary: 'Verify a token ❤️',
+    description:
+      'Verifies the validity of a token (email verification / password reset) for the given email.',
+  })
+  @ApiBody({ type: VerifyTokenDto })
+  @ApiResponse({ status: 201, description: 'Token verified successfully' })
+  @ApiResponse({ status: 400, description: 'Missing email or token' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired token' })
   @Post('verify-token')
-  async verifyToken(@Body() data: { email: string; token: string }) {
+  async verifyToken(@Body() data: VerifyTokenDto) {
     try {
       const email = data.email;
       const token = data.token;
@@ -429,22 +497,29 @@ scheme (\`admin-token\` or \`user-token\`). Each token persists independently.
   /*------------------------------------        
                CHANGE PASSWORD              
 ---------------------------------------*/
-  @ApiBearerAuth()
+
+  @ApiBearerAuth(SWAGGER_AUTH.USER)
+  @ApiOperation({
+    summary: 'Change current user password',
+    description:
+      'Changes the password of the authenticated user. Requires the old password for verification.',
+  })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({ status: 201, description: 'Password changed successfully' })
+  @ApiResponse({ status: 400, description: 'Missing or invalid fields' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized / wrong old password',
+  })
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
-  async changePassword(
-    @Req() req: Request,
-    @Body() data: { email: string; old_password: string; new_password: string },
-  ) {
+  async changePassword(@Req() req: Request, @Body() data: ChangePasswordDto) {
     try {
-      // const email = data.email;
       const user_id = req.user.userId;
 
       const oldPassword = data.old_password;
       const newPassword = data.new_password;
-      // if (!email) {
-      //   throw new HttpException('Email not provided', HttpStatus.UNAUTHORIZED);
-      // }
+
       if (!oldPassword) {
         throw new HttpException(
           'Old password not provided',
@@ -475,6 +550,7 @@ scheme (\`admin-token\` or \`user-token\`). Each token persists independently.
         REQUEST  EMAIL  CHANGE             
 ---------------------------------------*/
 
+  @ApiBearerAuth(SWAGGER_AUTH.USER)
   @UseGuards(JwtAuthGuard)
   @Post('request-email-change')
   async requestEmailChange(
@@ -500,6 +576,7 @@ scheme (\`admin-token\` or \`user-token\`). Each token persists independently.
                CHANGE EMAIL              
 ---------------------------------------*/
 
+  @ApiBearerAuth(SWAGGER_AUTH.USER)
   @UseGuards(JwtAuthGuard)
   @Post('change-email')
   async changeEmail(

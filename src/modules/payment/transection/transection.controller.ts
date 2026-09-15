@@ -3,7 +3,10 @@ import { TransectionService } from './transection.service';
 import { CreateTransectionDto } from './dto/create-transection.dto';
 import { UpdateTransectionDto } from './dto/update-transection.dto';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { SWAGGER_AUTH } from 'src/common/swagger/swagger-auth';
 
+@ApiBearerAuth(SWAGGER_AUTH.USER)
 @Controller('transection')
 export class TransectionController {
  

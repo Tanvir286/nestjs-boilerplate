@@ -13,10 +13,11 @@ import { CreateConversationDto } from './dto/create-conversation.dto';
 import { RolesGuard } from '../../../common/guard/role/roles.guard';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { SWAGGER_AUTH } from 'src/common/swagger/swagger-auth';
 import { Role } from '../../../common/guard/role/role.enum';
 import { Roles } from '../../../common/guard/role/roles.decorator';
 
-@ApiBearerAuth()
+@ApiBearerAuth(SWAGGER_AUTH.USER)
 @ApiTags('Conversation')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('chat/conversation')
